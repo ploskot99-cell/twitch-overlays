@@ -479,6 +479,53 @@ function startOverlay() {
     }, duration);
   }
 
+
+  /* --- ?fps=1 ------------------------------------------------------------
+     A frame counter that lives inside the overlay itself, because the only
+     machine whose timings matter is the one running OBS. Off unless asked
+     for, and it draws with transform only so it cannot itself be the cause
+     of what it is measuring. */
+  function startFpsMeter() {
+    var box = document.createElement('div');
+    box.style.cssText = 'position:fixed;left:12px;top:12px;z-index:99999;font:600 14px/1.5 ui-monospace,Consolas,monospace;color:#fff;background:rgba(10,9,16,.86);border:1px solid rgba(255,255,255,.25);border-radius:10px;padding:10px 14px;white-space:pre;pointer-events:none';
+    document.body.appendChild(box);
+
+    var deltas = [];
+    var last = performance.now();
+    var worst = 0, dropped = 0, total = 0;
+
+    function frame(now) {
+      var d = now - last;
+      last = now;
+      deltas.push(d);
+      if (deltas.length > 120) deltas.shift();
+      total++;
+      if (d > worst) worst = d;
+      if (d > 33) dropped++;
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+
+    setInterval(function () {
+      if (!deltas.length) { box.textContent = 'no frames — this page is not being drawn'; return; }
+      var sum = 0;
+      for (var i = 0; i < deltas.length; i++) sum += deltas[i];
+      var avg = sum / deltas.length;
+      var verdict = worst > 100 ? 'ΚΟΛΛΑΕΙ ΑΣΧΗΜΑ' : worst > 50 ? 'μικρά κολλήματα' : 'ΟΜΑΛΟ';
+      box.textContent =
+        'fps τώρα      ' + (1000 / avg).toFixed(0) + '
+' +
+        'χειρότερο καρέ ' + worst.toFixed(0) + ' ms
+' +
+        'καρέ πάνω 33ms ' + dropped + ' από ' + total + '
+' +
+        verdict;
+      worst = 0; dropped = 0; total = 0;
+    }, 2000);
+  }
+
+  if (Params.bool('fps', false)) startFpsMeter();
+
   warmFont();
 
   var queue = new Queue({ show: render, gap: Params.num('gap', cfg.gap) });
