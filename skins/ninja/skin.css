@@ -720,11 +720,23 @@ body.page-scene { background: #14100c; }
 .page-alerts .wrap[data-rank="r5"] { --tier: #7c3aed; --tier-lite: #c4b5fd; }  /* μωβ    */
 .page-alerts .wrap[data-rank="legend"] { --tier: #ffb03a; --tier-lite: #ffe9b8; }
 
-/* three years and over: the blade and the name go rainbow */
+/* Three years and over: the blade and the name both go rainbow, and both
+   cycle. A still gradient on the blade next to a moving one on the name
+   read as two different ideas. */
 .page-alerts .wrap[data-rank="legend"] .runner::before {
-  background: linear-gradient(145deg, #ff4d4d 0%, #ffe14d 24%, #4fd97a 46%,
-                                      #3ac6ff 66%, #8b6bff 84%, #ff4d9e 100%);
+  background: linear-gradient(145deg, #ff4d4d 0%, #ffe14d 12%, #4fd97a 24%,
+                                      #3ac6ff 36%, #8b6bff 46%, #ff4d9e 56%,
+                                      #ff4d4d 68%, #ffe14d 80%, #4fd97a 92%,
+                                      #3ac6ff 100%);
+  background-size: 100% 320%;
 }
+
+/* the spin has to be restated: an animation list cannot be appended to */
+.page-alerts .wrap.show[data-rank="legend"] .runner::before {
+  animation: shurikenSpin 1.05s cubic-bezier(.1, .85, .18, 1) both,
+             rainbowBlade 5s linear infinite;
+}
+@keyframes rainbowBlade { to { background-position: 0 320%; } }
 
 .page-alerts .wrap.show[data-rank="legend"] .name span {
   background: linear-gradient(90deg, #ff4d4d, #ffb03a, #ffe14d, #4fd97a,
