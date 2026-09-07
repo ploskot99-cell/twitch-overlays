@@ -512,14 +512,14 @@ function startOverlay() {
       for (var i = 0; i < deltas.length; i++) sum += deltas[i];
       var avg = sum / deltas.length;
       var verdict = worst > 100 ? 'ΚΟΛΛΑΕΙ ΑΣΧΗΜΑ' : worst > 50 ? 'μικρά κολλήματα' : 'ΟΜΑΛΟ';
-      box.textContent =
-        'fps τώρα      ' + (1000 / avg).toFixed(0) + '
-' +
-        'χειρότερο καρέ ' + worst.toFixed(0) + ' ms
-' +
-        'καρέ πάνω 33ms ' + dropped + ' από ' + total + '
-' +
-        verdict;
+      /* built with join rather than newline escapes: this file is written
+         by a generator and an escaped newline does not survive the trip */
+      box.textContent = [
+        'fps τώρα       ' + (1000 / avg).toFixed(0),
+        'χειρότερο καρέ ' + worst.toFixed(0) + ' ms',
+        'καρέ πάνω 33ms ' + dropped + ' από ' + total,
+        verdict
+      ].join(String.fromCharCode(10));
       worst = 0; dropped = 0; total = 0;
     }, 2000);
   }
