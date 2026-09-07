@@ -133,34 +133,8 @@ const SE_LAYOUT = [
   '.se-root .anchor { position: absolute; }'
 ].join('\n');
 
-/* A broken script shows nothing at all and explains itself only in a
-   console nobody has open — which is exactly how a syntax error reached
-   the live site once. Every script this builder emits or copies is parsed
-   before it is written. */
-function assertParses(label, code) {
-  try {
-    new Function(code);
-  } catch (err) {
-    console.error('');
-    console.error('  ✗ ' + label + ' does not parse: ' + err.message);
-    console.error('    Nothing was written. Fix it and build again.');
-    console.error('');
-    process.exit(1);
-  }
-}
-
-function assertPageScripts(label, html) {
-  /* split rather than match: this file is itself written by a generator,
-     and a regex full of escapes does not survive that trip */
-  var open = '<script>';
-  var close = '</' + 'script>';
-  var parts = html.split(open);
-  for (var i = 1; i < parts.length; i++) {
-    var end = parts[i].indexOf(close);
-    if (end === -1) continue;
-    assertParses(label + ' (inline block ' + i + ')', parts[i].slice(0, end));
-  }
-}
+/* Both builders share the same refusals — see build-checks.js. */
+const { assertParses, assertCallsResolve, assertPageScripts } = require('./build-checks.js');
 /* --- pulling a page apart -------------------------------------------------- */
 
 function read(file) {
@@ -183,6 +157,7 @@ function mergeCss(parts) {
 
 function extract(overlay) {
   const page = read(path.join('overlays', overlay + '.html'));
+  assertPageScripts(overlay + '.html', page);
 
   const style = (page.match(/<style>([\s\S]*?)<\/style>/) || [, ''])[1];
 

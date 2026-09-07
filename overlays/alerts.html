@@ -554,13 +554,12 @@ function startOverlay() {
       });
     });
 
-    var i = 0;
-    (function next() {
-      if (!list.length) return;
-      Bus.emit('alert', list[i % list.length]);
-      i++;
-      setTimeout(next, duration + 600);
-    })();
+    /* Hand the whole list to the queue and let it do the pacing. A timer
+       here cannot know how long an alert really takes — duration, then the
+       exit, then the gap — and being a little short made each alert cut the
+       one before it off mid-flight, so the blade never finished a turn.
+       The queue already knows all of that. */
+    list.forEach(function (ev) { Bus.emit('alert', ev); });
   }
   if (Params.bool('fps', false)) startFpsMeter();
 
