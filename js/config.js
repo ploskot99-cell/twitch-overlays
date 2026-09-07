@@ -66,8 +66,8 @@ window.OverlayConfig = {
     /* How many particles fly out per event type. Skins decide what they look
        like; this decides how many. 0 turns them off for that type. */
     burst: {
-      follow: 34, sub: 34, resub: 34, subgift: 40,
-      subbomb: 64, cheer: 46, raid: 72, tip: 46
+      follow: 18, sub: 18, resub: 18, subgift: 20,
+      subbomb: 30, cheer: 22, raid: 32, tip: 22
     },
 
     /* {user} {amount} {months} {tier} {viewers} are replaced at runtime. */

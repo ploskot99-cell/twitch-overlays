@@ -461,8 +461,11 @@ function startOverlay() {
     void wrap.offsetWidth;
     wrap.classList.add('show');
 
-    /* the bigger the event, the more it throws */
-    var weight = 1 + Math.max(0, RANK_NAMES.indexOf(rank)) * 0.35;
+    /* The bigger the event, the more it throws — but capped. Every leaf is a
+       DOM node with its own animations, all built in the same frame as the
+       impact, and an uncapped multiplier once put 198 of them on screen at
+       once. That is what a live stream sees as a stutter. */
+    var weight = Math.min(1.8, 1 + Math.max(0, RANK_NAMES.indexOf(rank)) * 0.2);
     burst(Math.round((BURST[ev.type] || 0) * weight));
     Sound.play(ev.type);
 
