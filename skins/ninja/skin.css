@@ -133,13 +133,14 @@
   content: '';
   position: absolute;
   inset: 0;
-  will-change: transform, filter;
+  will-change: transform;
   /* warm, high-contrast steel — flat grey disappears against parchment */
   background: linear-gradient(145deg, #ffffff 0%, #b9c0cb 34%, #5d6674 62%, #8e97a4 78%, #eef2f7 100%);
   clip-path: polygon(50% 0%, 60% 34%, 78% 22%, 66% 40%, 100% 50%, 66% 60%, 78% 78%,
                      60% 66%, 50% 100%, 40% 66%, 22% 78%, 34% 60%, 0% 50%, 34% 40%,
                      22% 22%, 40% 34%);
-  filter: drop-shadow(0 7px 11px rgba(0, 0, 0, .55));
+  /* held, never animated — see the note on shurikenSpin */
+  filter: blur(.7px) drop-shadow(2px 3px 5px rgba(0, 0, 0, .9));
   /* Four fast turns on the way in, then it never stops — the hand-off is
      invisible because 1440deg is a whole number of rotations. */
   animation: shurikenSpin 1.05s cubic-bezier(.15, .7, .4, 1) both,
@@ -896,23 +897,22 @@ body.page-scene { background: #14100c; }
 .page-alerts .runner::before {
   animation: shurikenSpin 1.05s cubic-bezier(.1, .85, .18, 1) both;
 }
-/* Fourteen turns, and a blur that clears as it slows.
+/* Six turns, and no animated filter.
 
-   The blade has four identical arms, so it repeats every 90°. Spun fast
-   enough, whole repeats fall between frames and the eye reads it as
-   juddering or turning backwards — the wagon-wheel effect. Blurring it
-   while it is fast hides the individual arms, so it reads as one spinning
-   disc; the blur lifts as it decelerates and the arms resolve. */
+   The blade has four identical arms, so it repeats every 90°. Past about
+   45° between frames the eye latches onto the next arm and reads the spin
+   backwards — it looks stuck. At 60fps six turns over 1.05s is 34° a frame,
+   which is the most speed this shape can carry and still turn the right way.
+   Fourteen turns was 80° a frame: the reason it juddered.
+
+   The blur is fixed rather than animated. Animating a filter re-rasterises
+   the layer on every single frame, which is the expensive part; a constant
+   one is rasterised once and costs nothing to spin. */
 @keyframes shurikenSpin {
-  0%   { transform: rotate(0deg) scale(1, 1);
-         filter: blur(3.4px) drop-shadow(0 7px 11px rgba(0, 0, 0, .45)); }
-  55%  { filter: blur(2.2px) drop-shadow(0 7px 11px rgba(0, 0, 0, .5)); }
-  80%  { filter: blur(1px) drop-shadow(0 7px 11px rgba(0, 0, 0, .55)); }
-  88%  { transform: rotate(5000deg) scale(1, 1);
-         filter: blur(.35px) drop-shadow(0 7px 11px rgba(0, 0, 0, .55)); }
-  94%  { transform: rotate(5046deg) scale(1.07, .93); }   /* the bite */
-  100% { transform: rotate(5052deg) scale(1, 1);          /* 14 turns, 12° off square */
-         filter: blur(0) drop-shadow(0 7px 11px rgba(0, 0, 0, .55)); }
+  0%   { transform: rotate(0deg) scale(1, 1); }
+  88%  { transform: rotate(2120deg) scale(1, 1); }
+  94%  { transform: rotate(2166deg) scale(1.07, .93); }   /* the bite */
+  100% { transform: rotate(2172deg) scale(1, 1); }        /* 6 turns, 12° off square */
 }
 
 /* the hub sinks a little as it goes in */
@@ -990,16 +990,7 @@ body.page-scene { background: #14100c; }
 /* the shadow stops floating and grips — "forwards", not "both", or it would
    hold its opening filter over the whole flight and erase the motion blur */
 .page-alerts .wrap.show .runner::before {
-  animation: shurikenSpin 1.05s cubic-bezier(.05, .72, .16, 1) both,
-             bladeSink .42s cubic-bezier(.2, .75, .3, 1) 1.02s forwards;
-}
-/* Same two functions, same order, as the last keyframe of shurikenSpin —
-   a filter list of a different length is not interpolatable, so the browser
-   snaps between them and the landing visibly hitches. One shadow instead of
-   two also keeps a blurred, clipped, spinning element cheap to raster. */
-@keyframes bladeSink {
-  from { filter: blur(0px) drop-shadow(0 7px 11px rgba(0, 0, 0, .55)); }
-  to   { filter: blur(0px) drop-shadow(2px 3px 4px rgba(0, 0, 0, .95)); }
+  animation: shurikenSpin 1.05s cubic-bezier(.05, .72, .16, 1) both;
 }
 
 /* ==========================================================================
