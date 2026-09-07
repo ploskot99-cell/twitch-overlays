@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<title>Labels</title>
+<link rel="stylesheet" href="../css/theme.css">
+<style>
+  .pill {
+    position: relative;
+    min-width: 260px;
+    padding: 12px 18px 13px 46px;
+    background: var(--card);
+    border: 1px solid var(--stroke);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+    backdrop-filter: blur(12px) saturate(140%);
+    overflow: hidden;
+  }
+
+  .pill::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, var(--accent), var(--accent-2));
+  }
+
+  .dot {
+    position: absolute;
+    left: 17px; top: 50%;
+    width: 14px; height: 14px;
+    margin-top: -7px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 14px var(--accent-glow);
+  }
+  .dot::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 1px solid var(--accent);
+    animation: ping 2.4s ease-out infinite;
+  }
+  @keyframes ping {
+    0%   { transform: scale(.8); opacity: .9; }
+    70%  { transform: scale(1.7); opacity: 0; }
+    100% { transform: scale(1.7); opacity: 0; }
+  }
+
+  .slot { position: relative; }
+
+  .title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+  .value {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 21px;
+    line-height: 1.25;
+    letter-spacing: -.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 320px;
+  }
+  .value small { font-size: 14px; font-weight: 600; color: var(--accent-3); margin-left: 5px; }
+
+  .slot.swap { animation: swap .5s var(--ease-out); }
+  @keyframes swap {
+    0%   { opacity: 0; transform: translateY(10px); filter: blur(3px); }
+    100% { opacity: 1; transform: translateY(0);    filter: blur(0); }
+  }
+
+  /* ?layout=stack shows every stat at once instead of rotating */
+  body.stacked .anchor { flex-direction: column; gap: 10px; align-items: flex-start; }
+  body.stacked .pill { min-width: 260px; }
+</style>
+<script>
+/* Skin loader — see alerts.html. */
+(function () { var d = 'default'; var m = /[?&]skin=([\w-]+)/.exec(location.search);
+  document.write('<link rel="stylesheet" href="../skins/' + (m ? m[1] : d) + '/skin.css">'); })();
+</script>
+</head>
+<body class="page-labels">
+
+<div class="anchor" id="stage"></div>
+
+<script src="../js/config.js"></script>
+<script src="../js/core.js"></script>
+<script src="../js/connect.js"></script>
+<script>
+function startOverlay() {
+  'use strict';
+
+  var settings = Overlay.init({ pos: 'bottom-right' });
+  var stage = document.getElementById('stage');
+  Overlay.place(stage, settings.pos);
+
+  var cfg = OverlayConfig.labels;
+  var show = Params.list('show', cfg.show);
+  var stacked = Params.get('layout', '') === 'stack';
+  var rotateEvery = Params.num('rotate', cfg.rotateEvery) * 1000;
+
+  if (stacked) document.body.classList.add('stacked');
+
+  /* Stream start, for the uptime pill. */
+  var sinceParam = Params.get('since', cfg.startedAt);
+  var since = sinceParam ? new Date(sinceParam) : new Date();
+  if (isNaN(since.getTime())) since = new Date();
+
+  /* Current value of each stat. Empty until something happens. */
+  var state = {
+    follower: null,
+    sub: null,
+    cheer: null,
+    tip: null,
+    uptime: null
+  };
+
+  Bus.on('follow',  function (e) { state.follower = { main: e.user }; });
+  Bus.on('sub',     function (e) { state.sub = { main: e.user, extra: 'Tier ' + (e.tier || 1) }; });
+  Bus.on('resub',   function (e) { state.sub = { main: e.user, extra: e.months + ' μήνες' }; });
+  Bus.on('subgift', function (e) { state.sub = { main: e.user, extra: 'δώρο' }; });
+  Bus.on('subbomb', function (e) { state.sub = { main: e.user, extra: e.amount + ' δώρα' }; });
+  Bus.on('tip',     function (e) { state.tip = { main: e.user, extra: Fmt.money(e.amount, e.currency) }; });
+  Bus.on('cheer',   function (e) {
+    var amount = e.amount || 0;
+    if (!state.cheer || amount > state.cheer.raw) {
+      state.cheer = { main: e.user, extra: Fmt.number(amount) + ' bits', raw: amount };
+    }
+  });
+
+  function read(key) {
+    if (key === 'uptime') {
+      return { main: Fmt.clock((Date.now() - since.getTime()) / 1000) };
+    }
+    return state[key];
+  }
+
+  function pillHtml(key) {
+    var data = read(key) || { main: '—' };
+    return '<div class="dot"></div>' +
+           '<div class="slot">' +
+             '<div class="title">' + Fmt.escape(cfg.titles[key] || key) + '</div>' +
+             '<div class="value">' + Fmt.escape(data.main) +
+               (data.extra ? '<small>' + Fmt.escape(data.extra) + '</small>' : '') +
+             '</div>' +
+           '</div>';
+  }
+
+  /* --- stacked: one pill per stat, refreshed in place ------------------- */
+
+  if (stacked) {
+    var pills = {};
+    show.forEach(function (key) {
+      var el = document.createElement('div');
+      el.className = 'pill';
+      el.innerHTML = pillHtml(key);
+      stage.appendChild(el);
+      pills[key] = el;
+    });
+    setInterval(function () {
+      show.forEach(function (key) { pills[key].innerHTML = pillHtml(key); });
+    }, 1000);
+    Connect.start({ demo: { chat: false, alertEvery: 6000 } });
+    return;
+  }
+
+  /* --- rotating: one pill that cycles through the stats ----------------- */
+
+  var pill = document.createElement('div');
+  pill.className = 'pill';
+  stage.appendChild(pill);
+
+  var index = 0;
+
+  function render(animate) {
+    var key = show[index % show.length];
+    pill.innerHTML = pillHtml(key);
+    if (animate) {
+      var slot = pill.querySelector('.slot');
+      slot.classList.remove('swap');
+      void slot.offsetWidth;
+      slot.classList.add('swap');
+    }
+  }
+
+  render(false);
+  setInterval(function () { index++; render(true); }, rotateEvery);
+  /* Keep the uptime ticking between rotations. */
+  setInterval(function () {
+    if (show[index % show.length] === 'uptime') render(false);
+  }, 1000);
+
+  Connect.start({ demo: { chat: false, alertEvery: 6000 } });
+}
+
+/* See alerts.html. */
+if (!window.SE_DEFER) startOverlay();
+</script>
+</body>
+</html>

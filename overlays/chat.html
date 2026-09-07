@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<title>Chat</title>
+<link rel="stylesheet" href="../css/theme.css">
+<style>
+  .chat {
+    width: 420px;
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 8px;
+    overflow: hidden;
+    padding: 4px;
+  }
+
+  .line {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 10px 13px;
+    background: var(--card);
+    border: 1px solid var(--stroke);
+    border-radius: 14px;
+    border-top-left-radius: 5px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.42);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+    backdrop-filter: blur(12px) saturate(140%);
+    font-size: 16px;
+    line-height: 1.42;
+    word-break: break-word;
+    transform-origin: left center;
+    animation: lineIn .5s var(--ease-out) both;
+  }
+  @keyframes lineIn {
+    from { opacity: 0; transform: translateX(-22px) scale(.96); filter: blur(4px); }
+    to   { opacity: 1; transform: translateX(0) scale(1);       filter: blur(0); }
+  }
+
+  .line.leaving { animation: lineOut .55s var(--ease-out) forwards; }
+  @keyframes lineOut {
+    to { opacity: 0; transform: translateX(-14px) scale(.97); filter: blur(3px);
+         margin-top: -14px; max-height: 0; padding-top: 0; padding-bottom: 0; }
+  }
+
+  .line.faded { opacity: 0; transition: opacity 1.4s ease; }
+
+  /* accent stripe in the speaker's colour */
+  .line::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 10px; bottom: 10px;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--who, var(--accent));
+  }
+  .line { position: relative; }
+
+  .who {
+    flex: 0 0 auto;
+    font-weight: 700;
+    color: var(--who, var(--accent));
+    text-shadow: 0 0 18px rgba(0,0,0,.6);
+  }
+  .who::after { content: ':'; color: var(--dim); margin-left: 1px; }
+
+  .body { min-width: 0; }
+  .body .emote { height: 26px; vertical-align: -7px; margin: 0 1px; }
+
+  /* --- badges ------------------------------------------------------------ */
+
+  .badges { flex: 0 0 auto; display: flex; gap: 4px; padding-top: 3px; }
+  .badge {
+    width: 17px; height: 17px;
+    border-radius: 5px;
+    display: grid;
+    place-items: center;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: -.03em;
+    color: #0b0a12;
+  }
+  .b-broadcaster { background: #f43f5e; }
+  .b-moderator   { background: #34d399; }
+  .b-vip         { background: #f472b6; }
+  .b-subscriber  { background: #a855f7; color: #fff; }
+  .b-founder     { background: #fbbf24; }
+  .b-premium,
+  .b-turbo       { background: #60a5fa; color: #fff; }
+
+  /* --- highlight for first-time chatters or mentions --------------------- */
+  .line.mention {
+    border-color: var(--accent);
+    box-shadow: 0 8px 24px rgba(0,0,0,.42), 0 0 0 1px var(--accent-soft), 0 0 30px var(--accent-glow);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .line { animation-duration: .01s; }
+  }
+</style>
+<script>
+/* Skin loader — see alerts.html. */
+(function () { var d = 'default'; var m = /[?&]skin=([\w-]+)/.exec(location.search);
+  document.write('<link rel="stylesheet" href="../skins/' + (m ? m[1] : d) + '/skin.css">'); })();
+</script>
+</head>
+<body class="page-chat">
+
+<div class="anchor" id="stage">
+  <div class="chat" id="chat"></div>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/core.js"></script>
+<script src="../js/connect.js"></script>
+<script>
+function startOverlay() {
+  'use strict';
+
+  var settings = Overlay.init({ pos: 'bottom-left' });
+  Overlay.place(document.getElementById('stage'), settings.pos);
+
+  var cfg = OverlayConfig.chat;
+  var box = document.getElementById('chat');
+  var max = Params.num('max', cfg.max);
+  var fadeAfter = Params.num('fade', cfg.fadeAfter);
+  var channel = String(Params.get('channel', OverlayConfig.channel) || '').toLowerCase();
+  var bots = (cfg.hideBots || []).map(function (b) { return b.toLowerCase(); });
+
+  var BADGE_LABEL = {
+    broadcaster: '★', moderator: '⚔', vip: '♦', subscriber: 'S',
+    founder: 'F', premium: 'P', turbo: 'T'
+  };
+
+  /* Twitch gives emote positions as code-point ranges into the raw text.
+     Build the HTML in pieces so only the text parts get escaped. */
+  function bodyHtml(text, emotes) {
+    var chars = Array.from(String(text || ''));
+    var ranges = [];
+
+    if (emotes && cfg.showEmotes) {
+      Object.keys(emotes).forEach(function (id) {
+        (emotes[id] || []).forEach(function (range) {
+          var pair = String(range).split('-');
+          ranges.push({ start: parseInt(pair[0], 10), end: parseInt(pair[1], 10), id: id });
+        });
+      });
+      ranges.sort(function (a, b) { return a.start - b.start; });
+    }
+
+    var html = '';
+    var cursor = 0;
+    ranges.forEach(function (r) {
+      if (isNaN(r.start) || r.start < cursor) return;
+      html += Fmt.escape(chars.slice(cursor, r.start).join(''));
+      html += '<img class="emote" alt="' + Fmt.escape(chars.slice(r.start, r.end + 1).join('')) +
+              '" src="https://static-cdn.jtvnw.net/emoticons/v2/' +
+              encodeURIComponent(r.id) + '/default/dark/2.0">';
+      cursor = r.end + 1;
+    });
+    html += Fmt.escape(chars.slice(cursor).join(''));
+    return html;
+  }
+
+  function badgesHtml(list) {
+    if (!cfg.showBadges || !list || !list.length) return '';
+    var out = list.filter(function (b) { return BADGE_LABEL[b]; })
+      .map(function (b) {
+        return '<span class="badge b-' + Fmt.escape(b) + '">' + BADGE_LABEL[b] + '</span>';
+      }).join('');
+    return out ? '<span class="badges">' + out + '</span>' : '';
+  }
+
+  function drop(line) {
+    if (!line || line.dataset.leaving) return;
+    line.dataset.leaving = '1';
+    line.classList.add('leaving');
+    setTimeout(function () { line.remove(); }, 600);
+  }
+
+  Bus.on('chat', function (msg) {
+    var user = String(msg.user || '');
+    var text = String(msg.message || '');
+
+    if (cfg.hideCommands && text.charAt(0) === '!') return;
+    if (bots.indexOf(user.toLowerCase()) !== -1) return;
+    if (!text.trim() && !msg.emotes) return;
+
+    var line = document.createElement('div');
+    line.className = 'line';
+    if (channel && text.toLowerCase().indexOf('@' + channel) !== -1) line.classList.add('mention');
+    if (msg.color) line.style.setProperty('--who', msg.color);
+
+    line.innerHTML =
+      badgesHtml(msg.badges) +
+      '<span class="who">' + Fmt.escape(user) + '</span>' +
+      '<span class="body">' + bodyHtml(text, msg.emotes) + '</span>';
+
+    box.appendChild(line);
+
+    while (box.children.length > max) drop(box.firstElementChild);
+
+    if (fadeAfter > 0) {
+      setTimeout(function () {
+        line.classList.add('faded');
+        setTimeout(function () { line.remove(); }, 1500);
+      }, fadeAfter * 1000);
+    }
+  });
+
+  /* Chat should clear when the stream is raided out or a mod purges it. */
+  Bus.on('chat:clear', function () {
+    Array.prototype.slice.call(box.children).forEach(drop);
+  });
+
+  Connect.start({ demo: { alerts: false, chatEvery: Params.num('every', 2600) } });
+}
+
+/* See alerts.html. */
+if (!window.SE_DEFER) startOverlay();
+</script>
+</body>
+</html>

@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StreamElements Preview</title>
+<link rel="stylesheet" href="css/theme.css">
+<style>
+  body {
+    overflow: auto;
+    background: #0b0a11;
+    background-image:
+      radial-gradient(900px 500px at 10% -10%, rgba(168,85,247,.15), transparent 60%),
+      radial-gradient(800px 460px at 92% 4%, rgba(34,211,238,.12), transparent 60%);
+    background-attachment: fixed;
+  }
+  .shell { max-width: 1180px; margin: 0 auto; padding: 30px 24px 60px; }
+
+  header { display: flex; align-items: center; gap: 16px; margin-bottom: 22px; flex-wrap: wrap; }
+  h1 { margin: 0; font-family: var(--font-display); font-weight: 800; font-size: 24px; letter-spacing: -.02em; }
+  .tag { font-size: 13px; color: var(--muted); margin-top: 3px; }
+  .spacer { flex: 1; }
+
+  label.field { display: flex; flex-direction: column; gap: 5px; font-size: 11px;
+                letter-spacing: .12em; text-transform: uppercase; color: var(--dim); font-weight: 700; }
+  select, input[type="text"] {
+    background: rgba(255,255,255,.05); border: 1px solid var(--stroke); color: var(--ink);
+    border-radius: 10px; padding: 9px 12px; font: inherit; font-size: 14px; outline: none;
+  }
+  select:focus { border-color: var(--accent); }
+
+  .panel {
+    background: rgba(20,18,29,.72);
+    border: 1px solid var(--stroke);
+    border-radius: 18px;
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    padding: 16px;
+    margin-bottom: 18px;
+  }
+
+  .stage {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid var(--stroke);
+    background-color: #14121c;
+    background-image:
+      linear-gradient(45deg, rgba(255,255,255,.04) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.04) 75%),
+      linear-gradient(45deg, rgba(255,255,255,.04) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.04) 75%);
+    background-size: 30px 30px;
+    background-position: 0 0, 15px 15px;
+  }
+  .stage iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+
+  .section-title { font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+                   color: var(--dim); font-weight: 800; margin: 16px 0 10px; }
+
+  .btns { display: flex; flex-wrap: wrap; gap: 8px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 9px 14px; background: rgba(255,255,255,.055);
+    border: 1px solid var(--stroke); border-radius: 10px; color: var(--ink);
+    font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
+    transition: transform .12s var(--ease-back), background .16s;
+  }
+  .btn:hover { background: rgba(255,255,255,.1); }
+  .btn:active { transform: scale(.96); }
+  .btn i { width: 8px; height: 8px; border-radius: 50%; background: var(--c, var(--accent)); }
+
+  .log {
+    margin-top: 14px; max-height: 190px; overflow: auto;
+    font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    font-size: 12px; line-height: 1.7; color: var(--muted);
+    background: rgba(0,0,0,.32); border: 1px solid var(--stroke);
+    border-radius: 10px; padding: 10px 12px;
+  }
+  .log b { color: var(--accent-2); font-weight: 700; }
+  .log .err { color: #fb7185; }
+  .log .ok { color: #34d399; }
+
+  .steps { display: grid; gap: 7px; font-size: 13.5px; color: var(--muted); margin-bottom: 14px; }
+  .steps b { color: var(--ink); }
+  .steps span::before {
+    content: '';
+    display: inline-block;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+    margin-right: 10px;
+    vertical-align: 2px;
+  }
+
+  .copy-row .btn { min-width: 168px; justify-content: center; font-weight: 700; }
+  .copy-row .btn.done {
+    background: linear-gradient(140deg, var(--accent), var(--accent-2));
+    border-color: transparent;
+    color: #0b0a12;
+  }
+  .copy-row .btn small { font-weight: 600; opacity: .65; margin-left: 2px; }
+
+  .warn {
+    border-color: #fb7185;
+    background: rgba(251, 113, 133, .10);
+    color: #ffd7dc;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .warn b { color: #fff; }
+
+  .note { font-size: 13.5px; color: var(--muted); line-height: 1.7; }
+  .note b { color: var(--ink); }
+  code { font-family: ui-monospace, Consolas, monospace; font-size: 12.5px;
+         background: rgba(255,255,255,.07); border: 1px solid var(--stroke);
+         padding: 1.5px 6px; border-radius: 6px; color: var(--accent-3); }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <div class="panel warn" id="warn" hidden>
+    <b>Η σελίδα άνοιξε απευθείας από τον φάκελο.</b><br>
+    Ο browser δεν επιτρέπει σε σελίδα <code>file://</code> να διαβάσει άλλα αρχεία,
+    οπότε τίποτα δεν μπορεί να φορτώσει εδώ.<br><br>
+    Τρέξε το <b>start.cmd</b> (ή <code>node serve.js</code>) και άνοιξε
+    <b>http://localhost:8777/se-preview.html</b>.
+  </div>
+
+  <header>
+    <div>
+      <h1>StreamElements Preview</h1>
+      <div class="tag">Τρέχει τα built widgets όπως θα τα έτρεχε το SE — πριν τα κάνεις επικόλληση</div>
+    </div>
+    <div class="spacer"></div>
+    <label class="field">Client
+      <input type="text" id="name" value="base" style="width:140px">
+    </label>
+    <label class="field">Widget
+      <select id="overlay">
+        <option value="alerts">alerts</option>
+        <option value="goal">goal</option>
+        <option value="chat">chat</option>
+        <option value="labels">labels</option>
+        <option value="scene">scene</option>
+      </select>
+    </label>
+    <label class="field">Στυλ
+      <select id="skinSel">
+        <option value="">όπως είναι ρυθμισμένο</option>
+      </select>
+    </label>
+    <label class="field">Χρώμα
+      <select id="variant">
+        <option value="">όπως είναι ρυθμισμένο</option>
+        <option value="default">Κανονικό</option>
+        <option value="mono">Χωρίς χρώμα</option>
+        <option value="crimson">Κόκκινο</option>
+        <option value="frost">Παγωμένο</option>
+        <option value="jade">Νεφρίτης</option>
+        <option value="lilac">Μωβ</option>
+        <option value="custom">Δικό μου χρώμα</option>
+      </select>
+    </label>
+    <label class="field">&nbsp;
+      <button class="btn" id="load">Φόρτωσε</button>
+    </label>
+  </header>
+
+  <div class="panel">
+    <div class="stage"><iframe id="frame" title="widget"></iframe></div>
+
+    <div class="section-title">Test events — ίδια ονόματα με του StreamElements</div>
+    <div class="btns" id="tests"></div>
+
+    <div class="log" id="log"></div>
+  </div>
+
+  <div class="panel">
+    <div class="section-title">Επικόλληση στο StreamElements</div>
+    <div class="steps">
+      <span>Overlay editor → <b>+ Add Widget → Static/Custom → Custom Widget</b></span>
+      <span><b>Settings → OPEN EDITOR</b>, και σβήσε ό,τι έχει μέσα</span>
+      <span>Πάτα ένα κουμπί, πήγαινε στην ομώνυμη καρτέλα του SE, <b>Ctrl+V</b>. Και τα τέσσερα.</span>
+      <span><b>Done</b> → μεγάλωσε το widget στον καμβά</span>
+    </div>
+    <div class="btns copy-row" id="copyRow"></div>
+  </div>
+
+  <div class="panel note">
+    Φορτώνει τα <code>widget.html</code>, <code>widget.css</code>, <code>widget.js</code> και
+    <code>fields.json</code> από το <code>dist/&lt;client&gt;-se/&lt;widget&gt;/</code>, τα ενώνει
+    σε ένα iframe και στέλνει <b>onWidgetLoad</b> και <b>onEventReceived</b> ακριβώς όπως το
+    StreamElements. Αν παίζει εδώ, παίζει και εκεί.
+    <br><br>
+    Φτιάξε πρώτα τα αρχεία με <code>node make-se.js &lt;client&gt;</code>.
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var frame = document.getElementById('frame');
+  var logBox = document.getElementById('log');
+  var nameInput = document.getElementById('name');
+  var overlaySel = document.getElementById('overlay');
+  var variantSel = document.getElementById('variant');
+  var skinSel = document.getElementById('skinSel');
+
+  function log(text, kind) {
+    var line = document.createElement('div');
+    if (kind) line.className = kind;
+    line.innerHTML = '<b>' + new Date().toLocaleTimeString() + '</b> ' + text;
+    logBox.appendChild(line);
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+
+  /* --- which widgets this client actually has ---------------------------- */
+
+  function loadManifest() {
+    var name = nameInput.value.trim() || 'base';
+    return fetch('dist/' + name + '-se/widgets.json')
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .catch(function () { return null; })
+      .then(function (list) {
+        if (!list || !list.length) return;   /* keep the built-in options */
+        var chosen = overlaySel.value;
+        overlaySel.innerHTML = '';
+        list.forEach(function (w) {
+          var opt = document.createElement('option');
+          opt.value = w.key;
+          opt.textContent = w.title === w.key ? w.key : w.title + '  (' + w.key + ')';
+          overlaySel.appendChild(opt);
+        });
+        /* stay on the same widget across clients when it exists */
+        if ([].some.call(overlaySel.options, function (o) { return o.value === chosen; })) {
+          overlaySel.value = chosen;
+        }
+      });
+  }
+
+  /* --- load the built widget into an iframe, the way SE assembles it ----- */
+
+  var OFFLINE = window.location.protocol === 'file:';
+  if (OFFLINE) document.getElementById('warn').hidden = false;
+
+  function load() {
+    if (OFFLINE) {
+      log('Άνοιξε τη σελίδα από http://localhost:8777/se-preview.html', 'err');
+      return Promise.resolve();
+    }
+    var name = nameInput.value.trim() || 'base';
+    var overlay = overlaySel.value;
+    var base = 'dist/' + name + '-se/' + overlay + '/';
+
+    logBox.innerHTML = '';
+    log('φόρτωση ' + base + ' …');
+
+    Promise.all(['widget.html', 'widget.css', 'widget.js', 'fields.json'].map(function (file) {
+      return fetch(base + file).then(function (res) {
+        if (!res.ok) throw new Error(file + ' → ' + res.status);
+        return res.text();
+      });
+    })).then(function (parts) {
+      var html = parts[0], css = parts[1], js = parts[2];
+      var fields = JSON.parse(parts[3]);
+
+      /* keep the raw text around for the copy buttons */
+      loaded = { HTML: html, CSS: css, JS: js, FIELDS: parts[3] };
+      renderCopyButtons();
+
+      /* SE hands the widget the *values* of the fields, not the definitions */
+      var fieldData = {};
+      Object.keys(fields).forEach(function (key) { fieldData[key] = fields[key].value; });
+
+      /* the pickers up top stand in for changing those fields inside SE */
+      if (fields.skin && fields.skin.options && skinSel.options.length < 2) {
+        Object.keys(fields.skin.options).forEach(function (name) {
+          var opt = document.createElement('option');
+          opt.value = name;
+          opt.textContent = fields.skin.options[name];
+          skinSel.appendChild(opt);
+        });
+      }
+      if (skinSel.value) fieldData.skin = skinSel.value;
+      if (variantSel.value) fieldData.variant = variantSel.value;
+
+      frame.onload = function () {
+        frame.contentWindow.dispatchEvent(new CustomEvent('onWidgetLoad', {
+          detail: { fieldData: fieldData, session: { data: {} }, channel: { username: name } }
+        }));
+        log('onWidgetLoad στάλθηκε με ' + Object.keys(fieldData).length + ' fields', 'ok');
+      };
+
+      frame.srcdoc =
+        '<!DOCTYPE html><html><head><meta charset="utf-8"><style>' + css + '</style></head>' +
+        '<body>' + html + '<' + 'script>' + js + '<' + '/script></body></html>';
+
+      log('φορτώθηκαν ' + [html.length, css.length, js.length].join(' / ') + ' bytes (html/css/js)');
+    }).catch(function (err) {
+      var message = String((err && err.message) || err);
+      if (/404/.test(message)) {
+        log('Δεν υπάρχει build για «' + name + '». Τρέξε: node make-se.js ' + name, 'err');
+      } else if (/Failed to fetch|NetworkError|Load failed/i.test(message)) {
+        log('Δεν απαντάει ο server στο :8777. Τρέξε το start.cmd και ξαναδοκίμασε.', 'err');
+      } else {
+        log('σφάλμα: ' + message, 'err');
+      }
+    });
+  }
+
+  /* --- copy straight into the four StreamElements tabs ------------------- */
+
+  var loaded = null;
+  var copyRow = document.getElementById('copyRow');
+
+  function copyViaTextarea(text) {
+    return new Promise(function (resolve, reject) {
+      var box = document.createElement('textarea');
+      box.value = text;
+      box.style.position = 'fixed';
+      box.style.top = '0';
+      box.style.opacity = '0';
+      document.body.appendChild(box);
+      box.focus();
+      box.select();
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (err) { ok = false; }
+      box.remove();
+      ok ? resolve() : reject(new Error('η αντιγραφή απέτυχε'));
+    });
+  }
+
+  function copy(text) {
+    /* The async API needs a focused document and a secure context, and
+       refuses in both cases with an exception — so it always falls back to
+       the textarea rather than leaving the button dead. */
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text).catch(function () {
+        return copyViaTextarea(text);
+      });
+    }
+    return copyViaTextarea(text);
+  }
+
+  function renderCopyButtons() {
+    copyRow.innerHTML = '';
+    ['HTML', 'CSS', 'JS', 'FIELDS'].forEach(function (box) {
+      var text = loaded[box];
+      var button = document.createElement('button');
+      button.className = 'btn';
+      button.innerHTML = 'Αντιγραφή ' + box +
+        ' <small>' + Math.round(text.length / 1024) + 'KB</small>';
+      button.onclick = function () {
+        copy(text).then(function () {
+          button.classList.add('done');
+          button.innerHTML = '✓ ' + box + ' αντιγράφηκε';
+          log('αντιγράφηκε το ' + box + ' — επικόλλησέ το στην καρτέλα ' + box, 'ok');
+        }).catch(function (err) {
+          log('δεν έγινε αντιγραφή: ' + err.message, 'err');
+        });
+      };
+      copyRow.appendChild(button);
+    });
+  }
+
+  /* --- the events StreamElements actually sends -------------------------- */
+
+  var NAMES = ['nikos_gr', 'AthenaPlays', 'kostas__', 'MariaTV', 'ElenaStreams'];
+  function who() { return NAMES[Math.floor(Math.random() * NAMES.length)]; }
+
+  var TESTS = [
+    { label: 'Follow', c: '#a855f7', listener: 'follower-latest',
+      event: function () { var n = who(); return { name: n, displayName: n, amount: 1 }; } },
+    { label: 'Sub', c: '#22d3ee', listener: 'subscriber-latest',
+      event: function () { var n = who(); return { name: n, displayName: n, amount: 1, tier: '1000', gifted: false }; } },
+    { label: 'Resub 12', c: '#fbbf24', listener: 'subscriber-latest',
+      event: function () { var n = who(); return { name: n, displayName: n, amount: 12, tier: '2000', message: 'ένα χρόνο εδώ!' }; } },
+    { label: 'Sub T3', c: '#d4a017', listener: 'subscriber-latest',
+      event: function () { var n = who(); return { name: n, displayName: n, amount: 1, tier: '3000', gifted: false }; } },
+    { label: 'Gift sub', c: '#34d399', listener: 'subscriber-latest',
+      event: function () { return { name: who(), displayName: who(), amount: 1, tier: '1000', gifted: true, sender: who() }; } },
+    { label: '20 gifts', c: '#34d399', listener: 'subscriber-latest',
+      event: function () { return { displayName: who(), amount: 20, bulkGifted: true, sender: who() }; } },
+    { label: '5000 bits', c: '#f59e0b', listener: 'cheer-latest',
+      event: function () { var n = who(); return { name: n, displayName: n, amount: 5000, message: 'πάμε!' }; } },
+    { label: 'Raid', c: '#fb7185', listener: 'raid-latest',
+      event: function () { var n = who(); return { name: n, displayName: n, amount: 340 }; } },
+    { label: 'Δωρεά 25€', c: '#10b981', listener: 'tip-latest',
+      event: function () { return { name: who(), amount: 25, currency: 'EUR', message: 'συνέχισε έτσι' }; } },
+    { label: 'Μήνυμα chat', c: '#60a5fa', listener: 'message',
+      event: function () {
+        var n = who();
+        return { data: { nick: n.toLowerCase(), displayName: n, displayColor: '#22d3ee',
+                         text: 'καλησπέρα από Κύπρο!', badges: [{ type: 'subscriber' }], emotes: [] } };
+      } }
+  ];
+
+  var tests = document.getElementById('tests');
+  TESTS.forEach(function (t) {
+    var b = document.createElement('button');
+    b.className = 'btn';
+    b.innerHTML = '<i style="--c:' + t.c + '"></i>' + t.label;
+    b.onclick = function () {
+      if (!frame.contentWindow) return;
+      frame.contentWindow.dispatchEvent(new CustomEvent('onEventReceived', {
+        detail: { listener: t.listener, event: t.event() }
+      }));
+      log('onEventReceived → ' + t.listener);
+    };
+    tests.appendChild(b);
+  });
+
+  function reload() { loadManifest().then(load); }
+
+  document.getElementById('load').onclick = reload;
+  overlaySel.onchange = load;
+  variantSel.onchange = load;
+  skinSel.onchange = load;
+  reload();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+# Built packages — regenerate with:  node make.js --all --zip && node make-se.js --clients
+dist/
+*.zip
+
+node_modules/
+
+# A streamer's own audio does not belong in the repo
+assets/sounds/*.mp3
+assets/sounds/*.ogg
+assets/sounds/*.wav
+
+# Machine-local tool permissions, not project config
+.claude/settings.local.json

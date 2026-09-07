@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<title>Scene</title>
+<link rel="stylesheet" href="../css/theme.css">
+<style>
+  /* This one is a full screen, not a transparent overlay. */
+  body { background: #0a0910; }
+
+  .scene { position: fixed; inset: 0; overflow: hidden; }
+
+  /* --- animated background ---------------------------------------------- */
+
+  .blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(90px);
+    opacity: .55;
+    will-change: transform;
+  }
+  .blob.a { width: 46vw; height: 46vw; left: -8vw;  top: -12vw; background: var(--accent);
+            animation: drift1 26s ease-in-out infinite; }
+  .blob.b { width: 40vw; height: 40vw; right: -6vw; top: 8vw;   background: var(--accent-2);
+            animation: drift2 32s ease-in-out infinite; }
+  .blob.c { width: 38vw; height: 38vw; left: 28vw;  bottom: -16vw; background: var(--accent-3);
+            opacity: .32; animation: drift3 29s ease-in-out infinite; }
+
+  @keyframes drift1 {
+    0%,100% { transform: translate(0,0) scale(1); }
+    50%     { transform: translate(10vw, 8vw) scale(1.15); }
+  }
+  @keyframes drift2 {
+    0%,100% { transform: translate(0,0) scale(1.1); }
+    50%     { transform: translate(-12vw, 10vw) scale(.9); }
+  }
+  @keyframes drift3 {
+    0%,100% { transform: translate(0,0) scale(.95); }
+    50%     { transform: translate(8vw, -10vw) scale(1.2); }
+  }
+
+  /* fine texture so the gradient does not band */
+  .grain {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(rgba(255,255,255,.16) 1px, transparent 1px);
+    background-size: 3px 3px;
+    opacity: .30;
+    mix-blend-mode: overlay;
+  }
+
+  .vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 35%, rgba(5,4,10,.82) 100%);
+  }
+
+  /* --- content ----------------------------------------------------------- */
+
+  .content {
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0 6vw;
+  }
+
+  .eyebrow {
+    font-size: 14px;
+    letter-spacing: .38em;
+    color: var(--accent-2);
+    margin-bottom: 18px;
+    animation: fade .9s var(--ease-out) both;
+  }
+  .eyebrow span {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent-2);
+    margin-right: 12px;
+    vertical-align: 1px;
+    animation: blink 1.8s ease-in-out infinite;
+  }
+  @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
+
+  h1 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: clamp(38px, 6.2vw, 92px);
+    line-height: 1.02;
+    letter-spacing: -.03em;
+    background: linear-gradient(100deg, #fff 25%, var(--accent-3) 60%, #fff 95%);
+    -webkit-background-clip: text;
+            background-clip: text;
+    color: transparent;
+    animation: fade 1s var(--ease-out) .12s both;
+  }
+
+  .sub {
+    margin-top: 16px;
+    font-size: clamp(15px, 1.5vw, 22px);
+    color: var(--muted);
+    animation: fade 1s var(--ease-out) .24s both;
+  }
+
+  @keyframes fade { from { opacity: 0; transform: translateY(16px); } }
+
+  /* --- countdown --------------------------------------------------------- */
+
+  .timer {
+    margin-top: 44px;
+    animation: fade 1s var(--ease-out) .36s both;
+  }
+  .timer.hidden { display: none; }
+
+  .digits {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: clamp(48px, 8vw, 118px);
+    line-height: 1;
+    letter-spacing: .01em;
+    font-variant-numeric: tabular-nums;
+    color: #fff;
+    text-shadow: 0 0 60px var(--accent-glow);
+  }
+  .digits.pulse { animation: beat 1s var(--ease-back); }
+  @keyframes beat { 30% { transform: scale(1.06); } to { transform: scale(1); } }
+
+  .progress {
+    width: min(460px, 60vw);
+    height: 5px;
+    margin: 24px auto 0;
+    border-radius: 999px;
+    background: rgba(255,255,255,.12);
+    overflow: hidden;
+  }
+  .progress i {
+    display: block;
+    height: 100%;
+    width: 0%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    box-shadow: 0 0 18px var(--accent-glow);
+    transition: width 1s linear;
+  }
+
+  .go {
+    margin-top: 40px;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: clamp(30px, 4vw, 58px);
+    color: var(--accent-3);
+    animation: beat 1.4s var(--ease-back) infinite;
+  }
+  .go.hidden { display: none; }
+
+  /* --- ticker ------------------------------------------------------------ */
+
+  .ticker {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    padding: 16px 0;
+    background: linear-gradient(180deg, transparent, rgba(5,4,10,.75));
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+            mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  }
+  .ticker-track {
+    display: flex;
+    width: max-content;
+    animation: marquee 34s linear infinite;
+  }
+  .ticker-track span {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 34px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: .05em;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .ticker-track span::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    margin-right: 16px;
+  }
+  @keyframes marquee { to { transform: translateX(-50%); } }
+
+  .brand {
+    position: absolute;
+    top: 30px; left: 34px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 17px;
+    letter-spacing: .04em;
+    color: var(--muted);
+    animation: fade 1s var(--ease-out) .5s both;
+  }
+  .brand b { color: var(--ink); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .blob, .go, .ticker-track, .eyebrow span { animation: none; }
+  }
+</style>
+<script>
+/* Skin loader — see alerts.html. */
+(function () { var d = 'default'; var m = /[?&]skin=([\w-]+)/.exec(location.search);
+  document.write('<link rel="stylesheet" href="../skins/' + (m ? m[1] : d) + '/skin.css">'); })();
+</script>
+</head>
+<body class="page-scene">
+
+<div class="scene">
+  <div class="blob a"></div>
+  <div class="blob b"></div>
+  <div class="blob c"></div>
+  <div class="grain"></div>
+  <div class="vignette"></div>
+
+  <div class="brand" id="brand"></div>
+
+  <div class="content">
+    <div class="eyebrow" id="eyebrow"><span></span><em id="eyebrowText" style="font-style:normal"></em></div>
+    <h1 id="title"></h1>
+    <div class="sub" id="sub"></div>
+
+    <div class="timer hidden" id="timer">
+      <div class="digits" id="digits">00:00</div>
+      <div class="progress"><i id="bar"></i></div>
+    </div>
+
+    <div class="go hidden" id="go">ΞΕΚΙΝΑΜΕ!</div>
+  </div>
+
+  <div class="ticker" id="ticker">
+    <div class="ticker-track" id="tickerTrack"></div>
+  </div>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/core.js"></script>
+<script>
+function startOverlay() {
+  'use strict';
+
+  Overlay.init({});
+
+  var cfg = OverlayConfig.scene;
+  var mode = Params.get('mode', 'starting');
+  var preset = cfg[mode] || cfg.starting;
+
+  var EYEBROW = { starting: 'STREAM ΞΕΚΙΝΑΕΙ', brb: 'ΔΙΑΛΕΙΜΜΑ', ended: 'ΤΕΛΟΣ ΜΕΤΑΔΟΣΗΣ' };
+
+  document.getElementById('eyebrowText').textContent = Params.get('eyebrow', EYEBROW[mode] || EYEBROW.starting);
+  document.getElementById('title').textContent = Params.get('title', preset.title);
+  document.getElementById('sub').textContent = Params.get('sub', preset.sub);
+
+  var channel = Params.get('channel', OverlayConfig.channel);
+  document.getElementById('brand').innerHTML = channel && channel !== 'yourchannel'
+    ? 'twitch.tv/<b>' + Fmt.escape(channel) + '</b>' : '';
+
+  /* --- ticker ----------------------------------------------------------- */
+
+  var lines = Params.list('ticker', cfg.ticker) || [];
+  if (lines.length) {
+    /* Duplicated once so the marquee can loop seamlessly at -50%. */
+    var html = lines.concat(lines).map(function (t) {
+      return '<span>' + Fmt.escape(t) + '</span>';
+    }).join('');
+    document.getElementById('tickerTrack').innerHTML = html;
+  } else {
+    document.getElementById('ticker').style.display = 'none';
+  }
+
+  /* --- countdown -------------------------------------------------------- */
+
+  var total = Params.num('t', preset.seconds || 0);
+  var timer = document.getElementById('timer');
+  var digits = document.getElementById('digits');
+  var bar = document.getElementById('bar');
+  var go = document.getElementById('go');
+
+  if (total > 0) {
+    timer.classList.remove('hidden');
+    var endsAt = Date.now() + total * 1000;
+    var lastShown = null;
+
+    var tick = function () {
+      var left = Math.max(0, (endsAt - Date.now()) / 1000);
+      var text = Fmt.clock(left);
+
+      if (text !== lastShown) {
+        digits.textContent = text;
+        lastShown = text;
+        /* A small beat on the last ten seconds makes the wait feel shorter. */
+        if (left <= 10.5 && left > 0) {
+          digits.classList.remove('pulse');
+          void digits.offsetWidth;
+          digits.classList.add('pulse');
+        }
+      }
+      bar.style.width = ((1 - left / total) * 100) + '%';
+
+      if (left <= 0) {
+        clearInterval(handle);
+        timer.classList.add('hidden');
+        go.classList.remove('hidden');
+        Bus.emit('scene:done', { mode: mode });
+      }
+    };
+
+    tick();
+    var handle = setInterval(tick, 250);
+  }
+
+  /* The control room can switch the scene live. */
+  Bus.on('scene:set', function (d) {
+    var url = new URL(window.location.href);
+    if (d.mode) url.searchParams.set('mode', d.mode);
+    if (d.t !== undefined) url.searchParams.set('t', d.t);
+    window.location.replace(url.toString());
+  });
+}
+
+/* See alerts.html. */
+if (!window.SE_DEFER) startOverlay();
+</script>
+</body>
+</html>

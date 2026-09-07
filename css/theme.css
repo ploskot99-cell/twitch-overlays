@@ -1,0 +1,164 @@
+/* ==========================================================================
+   theme.css — the single place to change how everything looks.
+   Every overlay in this pack reads these variables, so one edit here
+   re-skins the whole set.
+
+   Compatibility note: OBS ships an older Chromium (CEF). This file
+   deliberately avoids color-mix(), :has() and CSS nesting so it renders
+   identically in OBS 29+ and in a normal browser.
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  /* --- brand ------------------------------------------------------------ */
+  --accent:        #a855f7;   /* main accent            */
+  --accent-2:      #22d3ee;   /* secondary / gradient   */
+  --accent-3:      #fbbf24;   /* highlight, money, bits */
+  --accent-soft:   rgba(168, 85, 247, 0.28);
+  --accent-glow:   rgba(168, 85, 247, 0.45);
+
+  /* --- surfaces --------------------------------------------------------- */
+  --card:          rgba(17, 15, 26, 0.78);
+  --card-solid:    #110f1a;
+  --stroke:        rgba(255, 255, 255, 0.13);
+  --stroke-strong: rgba(255, 255, 255, 0.26);
+
+  /* --- text ------------------------------------------------------------- */
+  --ink:           #ffffff;
+  --muted:         rgba(255, 255, 255, 0.60);
+  --dim:           rgba(255, 255, 255, 0.38);
+
+  /* --- shape ------------------------------------------------------------ */
+  --radius:        20px;
+  --radius-sm:     12px;
+  --shadow:        0 18px 50px rgba(0, 0, 0, 0.55);
+  --ring:          0 0 0 1px var(--stroke), 0 0 44px var(--accent-glow);
+
+  /* --- type ------------------------------------------------------------- */
+  --font-display: 'Outfit', 'Segoe UI', system-ui, sans-serif;
+  --font-ui:      'Inter', 'Segoe UI', system-ui, sans-serif;
+
+  /* --- motion ----------------------------------------------------------- */
+  --ease-out:  cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* --- accent presets: add ?theme=ember to any overlay URL ----------------- */
+.theme-ember  { --accent: #fb7185; --accent-2: #fb923c; --accent-3: #fde047;
+                --accent-soft: rgba(251,113,133,.28); --accent-glow: rgba(251,113,133,.45); }
+.theme-mint   { --accent: #34d399; --accent-2: #22d3ee; --accent-3: #a3e635;
+                --accent-soft: rgba(52,211,153,.28);  --accent-glow: rgba(52,211,153,.42); }
+.theme-gold   { --accent: #fbbf24; --accent-2: #f97316; --accent-3: #fff1a8;
+                --accent-soft: rgba(251,191,36,.28);  --accent-glow: rgba(251,191,36,.42); }
+.theme-ice    { --accent: #60a5fa; --accent-2: #a78bfa; --accent-3: #e0f2fe;
+                --accent-soft: rgba(96,165,250,.28);  --accent-glow: rgba(96,165,250,.42); }
+.theme-hot    { --accent: #f43f5e; --accent-2: #a855f7; --accent-3: #fb923c;
+                --accent-soft: rgba(244,63,94,.28);   --accent-glow: rgba(244,63,94,.45); }
+
+/* ==========================================================================
+   base — overlays are transparent by default; OBS composites them over video
+   ========================================================================== */
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+  font-family: var(--font-ui);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The control room adds this to preview overlays on a visible backdrop. */
+body.checkered {
+  background-color: #14121c;
+  background-image:
+    linear-gradient(45deg, rgba(255,255,255,.035) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.035) 75%),
+    linear-gradient(45deg, rgba(255,255,255,.035) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.035) 75%);
+  background-size: 28px 28px;
+  background-position: 0 0, 14px 14px;
+}
+
+/* ==========================================================================
+   shared building blocks
+   ========================================================================== */
+
+.card {
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  backdrop-filter: blur(14px) saturate(140%);
+  overflow: hidden;
+}
+
+/* A 1px gradient edge that sits on top of the card border. */
+.card-edge::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(120deg, var(--accent), var(--accent-2), transparent 60%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask-composite: exclude;
+  pointer-events: none;
+  opacity: .9;
+}
+
+/* Diagonal light sweep, played once when an element appears. */
+.sweep::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,.20), transparent);
+  transform: skewX(-18deg);
+  animation: sweep 1.15s var(--ease-out) .28s 1 both;
+  pointer-events: none;
+}
+
+@keyframes sweep {
+  from { left: -60%; }
+  to   { left: 130%; }
+}
+
+.eyebrow {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.stack { display: flex; flex-direction: column; }
+.row   { display: flex; align-items: center; }
+
+/* Positioning helper — every overlay accepts ?pos=top-left … bottom-right */
+.anchor { position: fixed; display: flex; padding: 24px; }
+.pos-top-left      { inset: 0; align-items: flex-start;  justify-content: flex-start; }
+.pos-top-center    { inset: 0; align-items: flex-start;  justify-content: center; }
+.pos-top-right     { inset: 0; align-items: flex-start;  justify-content: flex-end; }
+.pos-center-left   { inset: 0; align-items: center;      justify-content: flex-start; }
+.pos-center        { inset: 0; align-items: center;      justify-content: center; }
+.pos-center-right  { inset: 0; align-items: center;      justify-content: flex-end; }
+.pos-bottom-left   { inset: 0; align-items: flex-end;    justify-content: flex-start; }
+.pos-bottom-center { inset: 0; align-items: flex-end;    justify-content: center; }
+.pos-bottom-right  { inset: 0; align-items: flex-end;    justify-content: flex-end; }
+
+/* Respect the viewer's motion preference where it is expressed. */
+@media (prefers-reduced-motion: reduce) {
+  .sweep::after { animation: none; }
+}

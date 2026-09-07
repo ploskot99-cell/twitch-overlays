@@ -1,0 +1,49 @@
+{
+  "displayName": "Kenji",
+  "channel": "kenjiplays",
+  "skin": "ninja",
+
+  "config": {
+    "sources": ["chat"],
+    "alerts": {
+      "duration": 7500,
+      "minCheer": 50,
+      "burst": {
+        "follow": 26, "sub": 30, "resub": 30, "subgift": 32,
+        "subbomb": 46, "cheer": 34, "raid": 52, "tip": 34
+      },
+      "templates": {
+        "follow":  { "eyebrow": "ΝΕΟΣ ΜΑΘΗΤΗΣ", "line": "{user}", "sub": "μπήκε στο dojo" },
+        "sub":     { "eyebrow": "ΝΕΟ SUB",       "line": "{user}", "sub": "Tier {tier} — ευχαριστώ!" },
+        "resub":   { "eyebrow": "{months} ΜΗΝΕΣ", "line": "{user}", "sub": "πιστός μέχρι τέλους" },
+        "subgift": { "eyebrow": "ΔΩΡΟ SUB",      "line": "{user}", "sub": "χάρισε sub στον/στην {target}" },
+        "subbomb": { "eyebrow": "{amount} GIFTED", "line": "{user}", "sub": "χάρισε {amount} subs!" },
+        "cheer":   { "eyebrow": "{amount} BITS",  "line": "{user}", "sub": "ευχαριστώ!" },
+        "raid":    { "eyebrow": "ΕΠΙΔΡΟΜΗ",       "line": "{user}", "sub": "έφερε {viewers} shinobi!" },
+        "tip":     { "eyebrow": "ΔΩΡΕΑ {amount}", "line": "{user}", "sub": "τιμή μου" }
+      }
+    },
+    "goal": { "label": "Στόχος: 500 μαθητές", "current": 218, "target": 500 },
+    "chat": { "fadeAfter": 75, "max": 11 },
+    "scene": {
+      "starting": { "title": "Η ΑΠΟΣΤΟΛΗ ΞΕΚΙΝΑΕΙ", "sub": "ετοιμάζω τα εργαλεία", "seconds": 360 },
+      "brb":      { "title": "ΣΥΝΤΟΜΟ ΔΙΑΛΕΙΜΜΑ",   "sub": "μη φύγεις", "seconds": 0 },
+      "ended":    { "title": "ΜΕΧΡΙ ΤΗΝ ΕΠΟΜΕΝΗ",   "sub": "ευχαριστώ που ήρθες", "seconds": 0 },
+      "ticker": [
+        "Follow για να μη χάσεις stream",
+        "Discord στο πάνελ κάτω",
+        "Κάθε Δευτέρα, Τετάρτη, Παρασκευή στις 20:00"
+      ]
+    }
+  },
+
+  "overlays": [
+    { "id": "alerts", "params": "pos=top-center" },
+    { "id": "goal",   "title": "Follower Goal", "params": "pos=bottom-left" },
+    { "id": "goal",   "as": "subgoal", "title": "Sub Goal",
+      "params": "pos=bottom-right&label=Sub%20Goal&current=12&target=50&count=sub,resub,subgift,subbomb" },
+    { "id": "chat",   "params": "pos=bottom-left&max=11&fade=75" },
+    { "id": "labels", "params": "pos=top-right&rotate=8" },
+    { "id": "scene",  "params": "mode=starting&t=360" }
+  ]
+}

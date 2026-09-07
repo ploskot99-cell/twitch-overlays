@@ -1,0 +1,27 @@
+{
+  "displayName": "Όνομα που βλέπει ο streamer",
+  "channel": "to_kanali_tous",
+  "skin": "default",
+
+  "config": {
+    "sources": ["chat"],
+    "alerts": {
+      "duration": 6500,
+      "minCheer": 100,
+      "templates": {
+        "follow": { "eyebrow": "ΝΕΟ FOLLOW", "line": "{user}", "sub": "καλώς ήρθες!" }
+      }
+    },
+    "goal": { "label": "Follower Goal", "current": 0, "target": 500 },
+    "chat": { "fadeAfter": 90 },
+    "scene": { "ticker": ["Follow για να μη χάσεις stream"] }
+  },
+
+  "overlays": [
+    { "id": "alerts", "params": "pos=top-center" },
+    { "id": "goal",   "params": "pos=bottom-left&label=Follower%20Goal&target=500" },
+    { "id": "chat",   "params": "pos=bottom-left&max=12&fade=90" },
+    { "id": "labels", "params": "pos=bottom-right&rotate=8" },
+    { "id": "scene",  "params": "mode=starting&t=300" }
+  ]
+}

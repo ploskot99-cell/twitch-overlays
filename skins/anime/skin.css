@@ -1,0 +1,324 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,600;0,800;0,900;1,900&display=swap');
+
+/* ==========================================================================
+   skin: anime
+   Manga panel treatment — paper cards, 4px ink outline, hard offset shadows,
+   speed lines, halftone dots, star bursts. Nothing here touches the HTML or
+   the JavaScript; it only lands after the built-in CSS and overrides it.
+   ========================================================================== */
+
+:root {
+  --ink:        #12060f;
+  --paper:      #fffdf7;
+  --pink:       #ff2d78;
+  --cyan:       #1ad9ff;
+  --yellow:     #ffe14d;
+  --soft:       #a33b6b;
+
+  --font-display: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
+  --font-ui:      'Montserrat', 'Segoe UI', system-ui, sans-serif;
+
+  --radius:    10px;
+  --radius-sm: 6px;
+}
+
+/* Only the scene screen has a background of its own. Every other overlay must
+   stay transparent or it will paint over the gameplay in OBS. */
+body.page-scene { background: #ffeaf2; color: var(--ink); }
+
+/* ==========================================================================
+   alerts
+   ========================================================================== */
+
+.alert {
+  background: var(--paper);
+  border: 4px solid var(--ink);
+  border-radius: 10px;
+  padding: 20px 34px 20px 20px;
+  /* the accent colour is set per event type, so every alert gets its own
+     hard shadow: violet for a follow, gold for bits, and so on */
+  box-shadow: 11px 11px 0 var(--accent), 11px 11px 0 4px var(--ink);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* the gradient hairline becomes speed lines across the panel */
+.alert::before {
+  padding: 0;
+  background: repeating-linear-gradient(78deg,
+    rgba(18, 6, 15, .085) 0 2px, transparent 2px 10px);
+  -webkit-mask: none;
+          mask: none;
+  -webkit-mask-composite: source-over;
+          mask-composite: add;
+  border-radius: 6px;
+}
+
+.alert::after { background: linear-gradient(100deg, transparent, rgba(255,255,255,.55), transparent); }
+
+/* the soft colour wash becomes a halftone corner */
+.wash {
+  left: auto; right: -26px; top: -26px;
+  width: 190px; height: 190px;
+  border-radius: 0;
+  background: radial-gradient(var(--accent) 24%, transparent 25%);
+  background-size: 10px 10px;
+  opacity: .35;
+}
+
+.icon {
+  border-radius: 50%;
+  background: var(--yellow);
+  border: 4px solid var(--ink);
+  box-shadow: 5px 5px 0 var(--ink);
+}
+.icon svg { stroke: var(--ink); stroke-width: 2.6; }
+.icon i { border: 3px solid var(--ink); border-radius: 50%; inset: -8px; }
+
+.eyebrow {
+  display: inline-block;
+  padding: 3px 10px 4px;
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: 4px;
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: .16em;
+  transform: skewX(-8deg);
+}
+
+.name span {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-style: italic;
+  font-size: 44px;
+  background: none;
+  color: var(--ink);
+  -webkit-text-fill-color: var(--ink);
+  text-shadow: 3px 3px 0 var(--accent);
+  transform: skewX(-6deg) translateY(115%);
+}
+.name { overflow: visible; padding-right: 6px; }
+
+.sub { color: var(--soft); font-weight: 700; }
+.msg { color: var(--soft); border-left: 3px solid var(--accent); font-style: normal; font-weight: 600; }
+
+/* particles become stars */
+.particles b {
+  border-radius: 0;
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%,
+                     50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+
+/* --- animation: slam in, wobble, settle ---------------------------------- */
+
+@keyframes cardIn {
+  0%   { transform: translateX(-70px) scale(1.28) rotate(-4deg); opacity: 0; }
+  50%  { transform: translateX(0) scale(.96) rotate(1.5deg); opacity: 1; }
+  72%  { transform: translateX(5px) scale(1.03) rotate(-1deg); }
+  88%  { transform: translateX(-2px) scale(.99) rotate(.4deg); }
+  100% { transform: translateX(0) scale(1) rotate(0deg); opacity: 1; }
+}
+@keyframes cardOut {
+  from { transform: translateX(0) scale(1) rotate(0deg); opacity: 1; }
+  to   { transform: translateX(46px) scale(.9) rotate(3deg); opacity: 0; }
+}
+@keyframes riseIn { to { transform: skewX(-6deg) translateY(0); } }
+@keyframes pop {
+  0%   { transform: scale(0) rotate(-60deg); }
+  65%  { transform: scale(1.22) rotate(12deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+/* ==========================================================================
+   goal bar
+   ========================================================================== */
+
+.goal {
+  background: var(--paper);
+  border: 4px solid var(--ink);
+  border-radius: 10px;
+  box-shadow: 9px 9px 0 var(--ink);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.goal::before { display: none; }
+
+.label {
+  font-weight: 900;
+  font-style: italic;
+  color: var(--ink);
+  transform: skewX(-6deg);
+}
+.count { color: var(--soft); font-weight: 700; }
+.count b { color: var(--ink); font-weight: 900; }
+
+.track {
+  height: 22px;
+  background: #ffe4ef;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  box-shadow: none;
+}
+.fill {
+  background: var(--pink);
+  box-shadow: none;
+}
+.fill::after {
+  background-image: repeating-linear-gradient(115deg,
+    rgba(255,255,255,.55) 0 8px, transparent 8px 20px);
+  background-size: auto;
+}
+.head-glow { display: none; }
+
+.barbox { padding-top: 38px; }
+.pct {
+  top: 0;
+  background: var(--yellow);
+  color: var(--ink);
+  border: 3px solid var(--ink);
+  border-radius: 6px;
+  font-weight: 900;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+.pct::after { background: var(--yellow); bottom: -6px; width: 10px; height: 10px; }
+
+.float { color: var(--pink); font-weight: 900; font-style: italic; text-shadow: 2px 2px 0 var(--ink); }
+.goal.done .fill { background: var(--yellow); }
+
+/* ==========================================================================
+   chat
+   ========================================================================== */
+
+.line {
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  border-radius: 14px 14px 14px 4px;
+  box-shadow: 4px 4px 0 rgba(18, 6, 15, .9);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  color: var(--ink);
+  font-weight: 600;
+}
+.line::before { width: 5px; top: 8px; bottom: 8px; }
+
+.who {
+  color: var(--who, var(--pink));
+  font-weight: 900;
+  -webkit-text-stroke: .7px var(--ink);
+  text-shadow: none;
+}
+.who::after { color: var(--ink); }
+
+.badge { border: 2px solid var(--ink); border-radius: 4px; width: 18px; height: 18px; }
+.b-subscriber { color: var(--paper); }
+
+.line.mention {
+  border-color: var(--pink);
+  box-shadow: 4px 4px 0 var(--pink);
+}
+
+@keyframes lineIn {
+  from { opacity: 0; transform: translateX(-26px) rotate(-2deg) scale(.94); filter: blur(0); }
+  to   { opacity: 1; transform: translateX(0) rotate(0deg) scale(1);        filter: blur(0); }
+}
+
+/* ==========================================================================
+   labels
+   ========================================================================== */
+
+.pill {
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  border-radius: 10px;
+  box-shadow: 5px 5px 0 var(--ink);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.pill::before { width: 7px; background: var(--pink); }
+
+.dot { background: var(--pink); border: 2px solid var(--ink); }
+.dot::after { border-color: var(--ink); }
+
+.title { color: var(--soft); font-weight: 800; }
+.value { color: var(--ink); font-weight: 900; font-style: italic; }
+.value small {
+  color: var(--ink);
+  background: var(--yellow);
+  border: 2px solid var(--ink);
+  border-radius: 5px;
+  padding: 1px 6px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+/* ==========================================================================
+   scene screens
+   ========================================================================== */
+
+.blob { filter: blur(70px); opacity: .5; }
+.blob.a { background: var(--pink); }
+.blob.b { background: var(--cyan); }
+.blob.c { background: var(--yellow); opacity: .45; }
+
+/* halftone instead of fine grain */
+.grain {
+  background-image: radial-gradient(var(--ink) 20%, transparent 21%);
+  background-size: 8px 8px;
+  opacity: .12;
+  mix-blend-mode: normal;
+}
+
+/* speed lines radiating from the middle */
+.vignette {
+  background:
+    repeating-conic-gradient(from 0deg at 50% 50%,
+      rgba(18,6,15,.07) 0deg 1.1deg, transparent 1.1deg 4deg),
+    radial-gradient(ellipse at center, rgba(255,253,247,.92) 22%, transparent 55%);
+}
+
+.scene h1 {
+  background: none;
+  color: var(--ink);
+  -webkit-text-fill-color: var(--ink);
+  font-weight: 900;
+  font-style: italic;
+  transform: skewX(-8deg);
+  text-shadow: 7px 7px 0 var(--pink), 14px 14px 0 var(--cyan);
+}
+
+.content .eyebrow {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 7px 16px;
+  border-radius: 6px;
+  letter-spacing: .28em;
+}
+.content .eyebrow span { background: var(--yellow); }
+
+.scene .sub { color: var(--soft); font-weight: 700; }
+
+.digits {
+  color: var(--ink);
+  font-weight: 900;
+  font-style: italic;
+  text-shadow: 6px 6px 0 var(--cyan);
+}
+.progress { background: var(--paper); border: 3px solid var(--ink); height: 12px; }
+.progress i { background: var(--pink); box-shadow: none; }
+
+.go { color: var(--pink); font-style: italic; text-shadow: 5px 5px 0 var(--ink); }
+
+.ticker { background: var(--ink); -webkit-mask-image: none; mask-image: none; }
+.ticker-track span { color: var(--paper); font-weight: 800; }
+.ticker-track span::before { background: var(--yellow); }
+
+.brand {
+  color: var(--ink);
+  background: var(--yellow);
+  border: 3px solid var(--ink);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-weight: 900;
+}
+.brand b { color: var(--ink); }

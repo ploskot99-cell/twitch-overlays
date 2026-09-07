@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<title>Νέο widget</title>
+<link rel="stylesheet" href="../css/theme.css">
+<style>
+  /* ------------------------------------------------------------------
+     Start from the shared look: var(--card), var(--accent), var(--stroke),
+     var(--font-display) are all defined in css/theme.css, so a widget that
+     uses them is automatically re-skinned along with everything else.
+
+     Give your elements plain class names — a skin can only restyle what it
+     can select.
+     ------------------------------------------------------------------ */
+
+  .widget {
+    min-width: 300px;
+    padding: 16px 20px;
+    background: var(--card);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    backdrop-filter: blur(14px) saturate(140%);
+    animation: enter .6s var(--ease-out) both;
+  }
+  @keyframes enter { from { opacity: 0; transform: translateY(12px); } }
+
+  .title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+  .value {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 26px;
+    letter-spacing: -.01em;
+  }
+</style>
+<script>
+/* Skin loader — keep this last in <head>. */
+(function () { var d = 'default'; var m = /[?&]skin=([\w-]+)/.exec(location.search);
+  document.write('<link rel="stylesheet" href="../skins/' + (m ? m[1] : d) + '/skin.css">'); })();
+</script>
+</head>
+
+<body class="page-template">
+
+<div class="anchor" id="stage">
+  <div class="widget">
+    <div class="title" id="title">Νέο widget</div>
+    <div class="value" id="value">—</div>
+  </div>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/core.js"></script>
+<script src="../js/connect.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* ?pos=, ?theme=, ?accent=, ?scale= all work for free. */
+  var settings = Overlay.init({ pos: 'bottom-right' });
+  Overlay.place(document.getElementById('stage'), settings.pos);
+
+  var value = document.getElementById('value');
+  document.getElementById('title').textContent = Params.get('title', 'Νέο widget');
+
+  /* Listen for whatever this widget cares about. Available events:
+     alert, follow, sub, resub, subgift, subbomb, cheer, raid, tip, chat.
+     Every one carries { user, amount, months, tier, viewers, target, message }
+     as far as the source provides it. */
+
+  var count = 0;
+  Bus.on('follow', function (ev) {
+    count++;
+    value.textContent = Fmt.number(count) + ' — ' + ev.user;
+  });
+
+  /* Never build HTML from a username or a chat message without Fmt.escape(). */
+
+  Connect.start({ demo: { chat: false, alertEvery: 4000 } });
+})();
+</script>
+</body>
+</html>

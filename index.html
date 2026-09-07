@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Overlay Control Room</title>
+<link rel="stylesheet" href="css/theme.css">
+<style>
+  body {
+    overflow: auto;
+    background: #0b0a11;
+    background-image:
+      radial-gradient(900px 500px at 12% -8%, rgba(168,85,247,.16), transparent 60%),
+      radial-gradient(800px 460px at 92% 4%, rgba(34,211,238,.13), transparent 60%);
+    background-attachment: fixed;
+  }
+
+  .shell { max-width: 1240px; margin: 0 auto; padding: 34px 26px 70px; }
+
+  /* --- header ------------------------------------------------------------ */
+
+  header { display: flex; align-items: center; gap: 18px; margin-bottom: 28px; flex-wrap: wrap; }
+  .logo {
+    width: 46px; height: 46px;
+    display: grid; place-items: center;
+    border-radius: 14px;
+    background: linear-gradient(150deg, var(--accent), var(--accent-2));
+    box-shadow: 0 8px 26px var(--accent-glow);
+  }
+  .logo svg { width: 24px; height: 24px; stroke: #fff; fill: none; stroke-width: 2;
+              stroke-linecap: round; stroke-linejoin: round; }
+  h1 { margin: 0; font-family: var(--font-display); font-weight: 800; font-size: 26px; letter-spacing: -.02em; }
+  .tag { font-size: 13.5px; color: var(--muted); margin-top: 3px; }
+  .spacer { flex: 1; }
+
+  select, input[type="text"] {
+    background: rgba(255,255,255,.05);
+    border: 1px solid var(--stroke);
+    color: var(--ink);
+    border-radius: 10px;
+    padding: 9px 12px;
+    font: inherit;
+    font-size: 14px;
+    outline: none;
+  }
+  select:focus, input[type="text"]:focus { border-color: var(--accent); }
+  label.field { display: flex; flex-direction: column; gap: 5px; font-size: 11.5px;
+                letter-spacing: .12em; text-transform: uppercase; color: var(--dim); font-weight: 700; }
+
+  /* --- layout ------------------------------------------------------------ */
+
+  .grid { display: grid; grid-template-columns: 250px 1fr; gap: 22px; align-items: start; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: rgba(20,18,29,.72);
+    border: 1px solid var(--stroke);
+    border-radius: 18px;
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    overflow: hidden;
+  }
+
+  /* --- overlay list ------------------------------------------------------ */
+
+  nav { padding: 8px; }
+  .item {
+    display: flex; align-items: center; gap: 12px;
+    width: 100%;
+    padding: 12px 13px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    color: var(--muted);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background .16s, color .16s, border-color .16s;
+  }
+  .item:hover { background: rgba(255,255,255,.05); color: var(--ink); }
+  .item.on {
+    background: rgba(255,255,255,.07);
+    border-color: var(--stroke-strong);
+    color: var(--ink);
+    box-shadow: inset 3px 0 0 var(--accent);
+  }
+  .item .n { font-weight: 700; font-size: 15px; display: block; }
+  .item .d { font-size: 12px; color: var(--dim); display: block; margin-top: 1px; }
+
+  /* --- preview ----------------------------------------------------------- */
+
+  .stage-wrap { padding: 16px; }
+  .stage {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid var(--stroke);
+    background-color: #14121c;
+    background-image:
+      linear-gradient(45deg, rgba(255,255,255,.04) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.04) 75%),
+      linear-gradient(45deg, rgba(255,255,255,.04) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.04) 75%);
+    background-size: 30px 30px;
+    background-position: 0 0, 15px 15px;
+  }
+  .stage.photo {
+    background-image:
+      radial-gradient(700px 400px at 25% 25%, rgba(88,60,140,.75), transparent 60%),
+      radial-gradient(600px 380px at 78% 70%, rgba(20,90,110,.7), transparent 60%),
+      linear-gradient(160deg, #1a1524, #0d1218);
+    background-size: auto;
+    background-position: 0 0;
+  }
+  .stage iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+
+  .bg-toggle {
+    position: absolute; right: 10px; top: 10px; z-index: 2;
+    display: flex; gap: 4px;
+    padding: 4px;
+    background: rgba(10,9,16,.72);
+    border: 1px solid var(--stroke);
+    border-radius: 10px;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+  .bg-toggle button {
+    background: transparent; border: 0; color: var(--dim);
+    font: inherit; font-size: 11.5px; font-weight: 700;
+    padding: 5px 10px; border-radius: 7px; cursor: pointer;
+  }
+  .bg-toggle button.on { background: rgba(255,255,255,.12); color: var(--ink); }
+
+  /* --- controls ---------------------------------------------------------- */
+
+  .controls { padding: 0 16px 18px; }
+  .section-title {
+    font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--dim); font-weight: 800; margin: 18px 0 10px;
+  }
+
+  .btns { display: flex; flex-wrap: wrap; gap: 8px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 9px 14px;
+    background: rgba(255,255,255,.055);
+    border: 1px solid var(--stroke);
+    border-radius: 10px;
+    color: var(--ink);
+    font: inherit; font-size: 13.5px; font-weight: 600;
+    cursor: pointer;
+    transition: transform .12s var(--ease-back), background .16s, border-color .16s;
+  }
+  .btn:hover { background: rgba(255,255,255,.1); border-color: var(--stroke-strong); }
+  .btn:active { transform: scale(.96); }
+  .btn i { width: 8px; height: 8px; border-radius: 50%; background: var(--c, var(--accent)); }
+  .btn.primary { background: linear-gradient(140deg, var(--accent), var(--accent-2)); border-color: transparent; color: #0b0a12; }
+
+  /* --- url row ----------------------------------------------------------- */
+
+  .url {
+    display: flex; align-items: stretch; gap: 8px; margin-top: 8px;
+  }
+  .url input {
+    flex: 1; min-width: 0;
+    font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+  .meta { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 10px; font-size: 13px; color: var(--muted); }
+  .meta b { color: var(--ink); font-weight: 700; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 30px;
+    transform: translateX(-50%) translateY(14px);
+    padding: 11px 20px;
+    background: var(--accent);
+    color: #0b0a12;
+    font-weight: 700; font-size: 14px;
+    border-radius: 12px;
+    box-shadow: 0 14px 40px var(--accent-glow);
+    opacity: 0; pointer-events: none;
+    transition: opacity .22s, transform .22s var(--ease-out);
+    z-index: 50;
+  }
+  .toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* --- setup notes -------------------------------------------------------- */
+
+  .notes { margin-top: 22px; padding: 22px 24px; }
+  .notes h2 { margin: 0 0 14px; font-family: var(--font-display); font-size: 18px; font-weight: 700; }
+  .notes ol { margin: 0; padding-left: 20px; color: var(--muted); font-size: 14.5px; line-height: 1.75; }
+  .notes ol b { color: var(--ink); }
+  .notes code {
+    font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    font-size: 12.5px;
+    background: rgba(255,255,255,.07);
+    border: 1px solid var(--stroke);
+    padding: 1.5px 6px;
+    border-radius: 6px;
+    color: var(--accent-3);
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <header>
+    <div class="logo">
+      <svg viewBox="0 0 24 24"><path d="M4 3h16v11l-4 4h-4l-3 3H7v-3H4z"/><path d="M11 8v4"/><path d="M15 8v4"/></svg>
+    </div>
+    <div>
+      <h1>Overlay Control Room</h1>
+      <div class="tag">Δες, δοκίμασε και πάρε τα URL για το OBS</div>
+    </div>
+    <div class="spacer"></div>
+    <label class="field">Κανάλι
+      <input type="text" id="channel" placeholder="yourchannel" style="width:150px">
+    </label>
+    <label class="field">Θέμα
+      <select id="theme">
+        <option value="">Violet (default)</option>
+        <option value="ember">Ember</option>
+        <option value="mint">Mint</option>
+        <option value="gold">Gold</option>
+        <option value="ice">Ice</option>
+        <option value="hot">Hot</option>
+      </select>
+    </label>
+    <label class="field">Skin
+      <select id="skin"></select>
+    </label>
+    <label class="field">&nbsp;
+      <a class="btn" href="se-preview.html" style="text-decoration:none">StreamElements →</a>
+    </label>
+    <label class="field">Χρώμα
+      <select id="variant">
+        <option value="">Κανονικό</option>
+        <option value="mono">Χωρίς χρώμα</option>
+        <option value="crimson">Κόκκινο</option>
+        <option value="frost">Παγωμένο</option>
+        <option value="jade">Νεφρίτης</option>
+        <option value="lilac">Μωβ</option>
+      </select>
+    </label>
+  </header>
+
+  <div class="grid">
+
+    <div class="panel">
+      <nav id="nav"></nav>
+    </div>
+
+    <div>
+      <div class="panel">
+        <div class="stage-wrap">
+          <div class="stage" id="stage">
+            <div class="bg-toggle">
+              <button data-bg="checker" class="on">Διαφάνεια</button>
+              <button data-bg="photo">Πάνω σε video</button>
+            </div>
+            <iframe id="frame" title="preview"></iframe>
+          </div>
+        </div>
+
+        <div class="controls">
+          <div class="section-title" id="testTitle">Δοκιμή</div>
+          <div class="btns" id="tests"></div>
+
+          <div class="section-title">Browser source URL</div>
+          <div class="url">
+            <input type="text" id="urlBox" readonly>
+            <button class="btn" id="copy">Αντιγραφή</button>
+            <button class="btn" id="open">Άνοιγμα</button>
+          </div>
+          <div class="meta">
+            <span>Προτεινόμενο μέγεθος: <b id="size"></b></span>
+            <span id="note"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel notes">
+        <h2>Πώς μπαίνει στο OBS</h2>
+        <ol>
+          <li>Στο OBS: <b>Sources → + → Browser</b>.</li>
+          <li>Κάνε <b>Αντιγραφή</b> εδώ πάνω και επικόλλησε στο πεδίο <b>URL</b>. (Εναλλακτικά τσέκαρε <b>Local file</b> και διάλεξε το αρχείο.)</li>
+          <li>Βάλε το <b>Width / Height</b> που γράφει το «Προτεινόμενο μέγεθος».</li>
+          <li>Τσέκαρε <b>Shutdown source when not visible</b> και <b>Refresh browser when scene becomes active</b> — έτσι τα alerts ξεκινούν καθαρά κάθε φορά.</li>
+          <li>Για πραγματικά events άνοιξε το <code>js/config.js</code> και βάλε το κανάλι σου και τα <code>sources</code>. Οδηγίες στο <code>README.md</code>.</li>
+        </ol>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/config.js"></script>
+<script src="js/core.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* --- the overlays on offer ------------------------------------------- */
+
+  var OVERLAYS = [
+    {
+      id: 'alerts', name: 'Alerts', desc: 'follow, sub, raid, bits, δωρεές',
+      file: 'overlays/alerts.html',
+      preview: 'sources=none&pos=top-center',
+      obs: 'pos=top-center',
+      size: '1920 × 1080',
+      note: 'Βάλ’ το σε όλο τον καμβά — η θέση ορίζεται με το pos=',
+      tests: [
+        { label: 'Follow',   type: 'follow',  c: '#a855f7' },
+        { label: 'Sub',      type: 'sub',     c: '#22d3ee' },
+        { label: 'Resub',    type: 'resub',   c: '#fbbf24' },
+        { label: 'Gift sub', type: 'subgift', c: '#34d399' },
+        { label: '20 gifts', type: 'subbomb', c: '#34d399' },
+        { label: 'Bits',     type: 'cheer',   c: '#f59e0b' },
+        { label: 'Raid',     type: 'raid',    c: '#fb7185' },
+        { label: 'Δωρεά',    type: 'tip',     c: '#10b981' }
+      ]
+    },
+    {
+      id: 'goal', name: 'Goal bar', desc: 'στόχος follower ή sub',
+      file: 'overlays/goal.html',
+      preview: 'sources=none&pos=center&current=312&target=500',
+      obs: 'pos=bottom-left&label=Follower%20Goal&current=312&target=500',
+      size: '500 × 160',
+      note: 'Ρυθμίσεις με label=, current=, target=',
+      tests: [
+        { label: '+1',  bus: 'goal:set', data: { add: 1 } },
+        { label: '+5',  bus: 'goal:set', data: { add: 5 } },
+        { label: '+25', bus: 'goal:set', data: { add: 25 } },
+        { label: 'Reset', bus: 'goal:set', data: { current: 312 } },
+        { label: 'Γέμισμα', bus: 'goal:set', data: { current: 500 } }
+      ]
+    },
+    {
+      id: 'chat', name: 'Chat box', desc: 'μηνύματα με emotes & badges',
+      file: 'overlays/chat.html',
+      preview: 'sources=demo&pos=bottom-left&max=7',
+      obs: 'pos=bottom-left&max=12&fade=90',
+      size: '500 × 900',
+      note: 'fade= δευτερόλεπτα πριν σβήσει το μήνυμα (0 = ποτέ)',
+      tests: [
+        { label: 'Μήνυμα', chat: true },
+        { label: 'Καθάρισμα', bus: 'chat:clear', data: {} }
+      ]
+    },
+    {
+      id: 'labels', name: 'Labels', desc: 'τελευταίο follow / sub / uptime',
+      file: 'overlays/labels.html',
+      preview: 'sources=none&pos=center&rotate=4',
+      obs: 'pos=bottom-right&rotate=8',
+      size: '320 × 130',
+      note: 'layout=stack τα δείχνει όλα μαζί (τότε ύψος ~440)',
+      tests: [
+        { label: 'Follow',  type: 'follow' },
+        { label: 'Sub',     type: 'sub' },
+        { label: 'Bits',    type: 'cheer' },
+        { label: 'Δωρεά',   type: 'tip' }
+      ]
+    },
+    {
+      id: 'scene', name: 'Scene screens', desc: 'starting soon / BRB / τέλος',
+      file: 'overlays/scene.html',
+      preview: 'mode=starting&t=300',
+      obs: 'mode=starting&t=300',
+      size: '1920 × 1080',
+      note: 't= δευτερόλεπτα αντίστροφης μέτρησης (0 = χωρίς)',
+      tests: [
+        { label: 'Starting soon', scene: 'mode=starting&t=300' },
+        { label: 'BRB',           scene: 'mode=brb' },
+        { label: 'Τέλος',         scene: 'mode=ended' },
+        { label: 'Countdown 10s', scene: 'mode=starting&t=10' }
+      ]
+    }
+  ];
+
+  /* Skins live in skins/<name>/skin.css. Add new ones to this list so they
+     show up in the picker. */
+  var SKINS = ['default', 'anime', 'ninja'];   /* fallback if the manifest is unreadable */
+
+  /* A folder built by make.js carries the client's own choices. When they are
+     present, show only that person's overlays, with their params. */
+  if (window.ClientOverlays) {
+    var byId = {};
+    OVERLAYS.forEach(function (o) { byId[o.id] = o; });
+
+    var list = [];
+    Object.keys(window.ClientOverlays).forEach(function (key) {
+      var c = window.ClientOverlays[key];
+      var source = byId[c.base || key];
+      if (!source) return;
+
+      /* "as" lets the same overlay appear twice with different settings, so
+         each instance gets its own row rather than overwriting the other. */
+      var row = {};
+      Object.keys(source).forEach(function (k) { row[k] = source[k]; });
+      row.id = key;
+      if (c.title) row.name = c.title;
+      if (c.params) {
+        row.obs = c.params;
+        row.preview = (source.id === 'chat' ? 'sources=demo&' : 'sources=none&') + c.params;
+      }
+      if (c.size) row.size = c.size;
+      list.push(row);
+    });
+
+    if (list.length) OVERLAYS = list;
+  }
+
+  /* --- state ------------------------------------------------------------ */
+
+  var current = OVERLAYS[0];
+  var sceneQuery = null;
+
+  var frame = document.getElementById('frame');
+  var stage = document.getElementById('stage');
+  var urlBox = document.getElementById('urlBox');
+  var themeSel = document.getElementById('theme');
+  var skinSel = document.getElementById('skin');
+  var variantSel = document.getElementById('variant');
+  var channelInput = document.getElementById('channel');
+
+  function fillSkins(list) {
+    var keep = skinSel.value;
+    skinSel.innerHTML = '';
+    list.forEach(function (name) {
+      var opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+      skinSel.appendChild(opt);
+    });
+    skinSel.value = list.indexOf(keep) !== -1 ? keep : (window.ClientSkin || 'default');
+  }
+
+  fillSkins(SKINS);
+
+  /* skins/skins.json is rewritten by make.js and make-se.js, so the picker
+     lists whatever skins actually exist instead of a list we must remember
+     to update. Opened from disk, fetch fails and the fallback stands. */
+  if (window.fetch) {
+    fetch('skins/skins.json')
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .catch(function () { return null; })
+      .then(function (list) {
+        if (list && list.length) { fillSkins(list); render(); }
+      });
+  }
+
+  channelInput.value = OverlayConfig.channel === 'yourchannel' ? '' : OverlayConfig.channel;
+
+  function extras() {
+    var bits = [];
+    /* In a folder built by make.js the skin is already baked into the pages.
+       Leaving it out of the URL means a later rebuild with a different skin
+       takes effect without anyone re-pasting sources into OBS. */
+    var baked = window.ClientSkin || 'default';
+    if (skinSel.value && skinSel.value !== baked) bits.push('skin=' + skinSel.value);
+    if (variantSel.value) bits.push('variant=' + variantSel.value);
+    if (themeSel.value) bits.push('theme=' + themeSel.value);
+    if (channelInput.value.trim()) bits.push('channel=' + encodeURIComponent(channelInput.value.trim()));
+    return bits.join('&');
+  }
+
+  function join(base, more) {
+    return more ? base + (base.indexOf('?') === -1 ? '?' : '&') + more : base;
+  }
+
+  function previewUrl() {
+    var q = current.id === 'scene' && sceneQuery ? sceneQuery : current.preview;
+    return join(join(current.file, q), extras());
+  }
+
+  function obsUrl() {
+    var abs = new URL(current.file, window.location.href).href;
+    return join(join(abs, current.obs), extras());
+  }
+
+  /* --- render ------------------------------------------------------------ */
+
+  var nav = document.getElementById('nav');
+  OVERLAYS.forEach(function (o) {
+    var b = document.createElement('button');
+    b.className = 'item' + (o === current ? ' on' : '');
+    b.innerHTML = '<span><span class="n">' + o.name + '</span><span class="d">' + o.desc + '</span></span>';
+    b.onclick = function () {
+      current = o;
+      sceneQuery = null;
+      Array.prototype.forEach.call(nav.children, function (c) { c.classList.remove('on'); });
+      b.classList.add('on');
+      render();
+    };
+    nav.appendChild(b);
+  });
+
+  function render() {
+    frame.src = previewUrl();
+    urlBox.value = obsUrl();
+    document.getElementById('size').textContent = current.size;
+    document.getElementById('note').textContent = current.note || '';
+
+    var tests = document.getElementById('tests');
+    tests.innerHTML = '';
+    current.tests.forEach(function (t) {
+      var b = document.createElement('button');
+      b.className = 'btn';
+      b.innerHTML = (t.c ? '<i style="--c:' + t.c + '"></i>' : '') + t.label;
+      b.onclick = function () { fireTest(t); };
+      tests.appendChild(b);
+    });
+  }
+
+  /* --- test events ------------------------------------------------------- */
+
+  function post(type, data) {
+    try {
+      frame.contentWindow.postMessage({ __overlay: true, type: type, data: data || {} }, '*');
+    } catch (err) {
+      toast('Το preview δεν απάντησε — δοκίμασε refresh');
+    }
+  }
+
+  function fireTest(t) {
+    if (t.scene) {
+      sceneQuery = t.scene;
+      frame.src = previewUrl();
+      urlBox.value = join(join(new URL(current.file, window.location.href).href, t.scene), extras());
+      return;
+    }
+    if (t.chat) { post('chat', Demo.chat()); return; }
+    if (t.bus)  { post(t.bus, t.data); return; }
+
+    var ev = Demo.event(t.type);
+    if (t.type === 'subbomb') ev.amount = 20;
+    post('alert', ev);
+    post(t.type, ev);
+  }
+
+  /* --- background toggle -------------------------------------------------- */
+
+  Array.prototype.forEach.call(document.querySelectorAll('.bg-toggle button'), function (b) {
+    b.onclick = function () {
+      document.querySelectorAll('.bg-toggle button').forEach(function (x) { x.classList.remove('on'); });
+      b.classList.add('on');
+      stage.classList.toggle('photo', b.dataset.bg === 'photo');
+    };
+  });
+
+  /* --- copy / open --------------------------------------------------------- */
+
+  var toastEl = document.getElementById('toast');
+  var toastTimer = null;
+  function toast(text) {
+    toastEl.textContent = text;
+    toastEl.classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove('on'); }, 1900);
+  }
+
+  document.getElementById('copy').onclick = function () {
+    urlBox.select();
+    var done = false;
+    /* execCommand still works when the page is opened straight from disk,
+       where the async clipboard API is blocked. */
+    try { done = document.execCommand('copy'); } catch (err) { done = false; }
+    if (!done && navigator.clipboard) {
+      navigator.clipboard.writeText(urlBox.value).then(function () { toast('Αντιγράφηκε'); });
+      return;
+    }
+    toast(done ? 'Αντιγράφηκε' : 'Δεν έγινε αντιγραφή — διάλεξέ το με το χέρι');
+  };
+
+  document.getElementById('open').onclick = function () {
+    window.open(previewUrl(), '_blank');
+  };
+
+  themeSel.onchange = render;
+  skinSel.onchange = render;
+  variantSel.onchange = render;
+  channelInput.oninput = function () { urlBox.value = obsUrl(); };
+
+  render();
+})();
+</script>
+</body>
+</html>

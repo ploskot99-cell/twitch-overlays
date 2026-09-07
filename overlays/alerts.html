@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<title>Alerts</title>
+<link rel="stylesheet" href="../css/theme.css">
+<style>
+  /* --- the alert card -------------------------------------------------- */
+
+  .wrap {
+    position: relative;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .wrap.show { opacity: 1; }
+
+  .alert {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    min-width: 440px;
+    max-width: var(--alert-max, 640px);
+    padding: 22px 38px 22px 22px;
+    background: var(--card);
+    border: 1px solid var(--stroke);
+    border-radius: 24px;
+    box-shadow: var(--shadow), 0 0 60px var(--accent-glow);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    backdrop-filter: blur(16px) saturate(150%);
+    overflow: hidden;
+    transform: translateY(-26px) scale(.9);
+    opacity: 0;
+  }
+  .wrap.show .alert { animation: cardIn .72s var(--ease-back) forwards; }
+  .wrap.out  .alert { animation: cardOut .40s cubic-bezier(.4,0,1,1) forwards; }
+
+  @keyframes cardIn  { to { transform: translateY(0) scale(1); opacity: 1; } }
+  @keyframes cardOut { from { transform: translateY(0) scale(1); opacity: 1; }
+                       to   { transform: translateY(-16px) scale(.95); opacity: 0; } }
+
+  /* gradient hairline on the card edge */
+  .alert::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(115deg, var(--accent), var(--accent-2) 45%, transparent 75%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* light sweep across the card, once */
+  .alert::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -60%;
+    width: 45%; height: 100%;
+    background: linear-gradient(100deg, transparent, rgba(255,255,255,.22), transparent);
+    transform: skewX(-18deg);
+    pointer-events: none;
+  }
+  .wrap.show .alert::after { animation: sweep 1.1s var(--ease-out) .3s both; }
+
+  /* a soft colour wash behind the icon side */
+  .wash {
+    position: absolute;
+    left: -40px; top: -60px;
+    width: 260px; height: 260px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--accent-soft), transparent 65%);
+    pointer-events: none;
+  }
+
+  /* --- icon ------------------------------------------------------------- */
+
+  .icon {
+    position: relative;
+    flex: 0 0 auto;
+    width: 78px; height: 78px;
+    display: grid;
+    place-items: center;
+    border-radius: 22px;
+    background: linear-gradient(150deg, var(--accent), var(--accent-2));
+    box-shadow: 0 10px 30px var(--accent-glow);
+    transform: scale(0) rotate(-30deg);
+  }
+  .wrap.show .icon { animation: pop .68s var(--ease-back) .12s forwards; }
+  @keyframes pop { to { transform: scale(1) rotate(0deg); } }
+
+  .icon svg { width: 40px; height: 40px; stroke: #fff; fill: none;
+              stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* pulsing ring while the alert is on screen */
+  .icon i {
+    position: absolute;
+    inset: -6px;
+    border-radius: 26px;
+    border: 2px solid var(--accent);
+    opacity: 0;
+  }
+  .wrap.show .icon i { animation: ring 2.1s ease-out .5s infinite; }
+  @keyframes ring {
+    0%   { transform: scale(.9); opacity: .8; }
+    70%  { transform: scale(1.28); opacity: 0; }
+    100% { transform: scale(1.28); opacity: 0; }
+  }
+
+  /* --- text ------------------------------------------------------------- */
+
+  .text { position: relative; min-width: 0; }
+
+  .eyebrow {
+    font-size: 12.5px;
+    letter-spacing: .2em;
+    color: var(--accent-2);
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  .wrap.show .eyebrow { animation: rise .55s var(--ease-out) .2s forwards; }
+
+  .name {
+    overflow: hidden;
+    margin: 4px 0 2px;
+  }
+  .name span {
+    display: block;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 42px;
+    line-height: 1.1;
+    letter-spacing: -.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background: linear-gradient(100deg, #fff 30%, var(--accent-3));
+    -webkit-background-clip: text;
+            background-clip: text;
+    color: transparent;
+    transform: translateY(110%);
+  }
+  .wrap.show .name span { animation: riseIn .7s var(--ease-out) .26s forwards; }
+
+  .sub {
+    font-size: 16.5px;
+    font-weight: 500;
+    color: var(--muted);
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  .wrap.show .sub { animation: rise .55s var(--ease-out) .36s forwards; }
+
+  .msg {
+    margin-top: 8px;
+    padding-left: 12px;
+    border-left: 2px solid var(--accent-soft);
+    font-size: 15px;
+    color: var(--dim);
+    font-style: italic;
+    max-width: 460px;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  .wrap.show .msg { animation: rise .55s var(--ease-out) .44s forwards; }
+  .msg.hidden { display: none; }
+
+  @keyframes rise   { to { opacity: 1; transform: translateY(0); } }
+  @keyframes riseIn { to { transform: translateY(0); } }
+
+  /* --- particles -------------------------------------------------------- */
+
+  .particles { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+
+  /* The script only supplies randomness — position (--x --y), size (--s),
+     delay (--d) and spin (--r). What a particle actually looks like is CSS,
+     so a skin can turn these into leaves, sparks, petals or coins. */
+  .particles b {
+    position: absolute;
+    left: 60px; top: 50%;
+    width: var(--s, 9px);
+    height: var(--s, 9px);
+    border-radius: 3px;
+    background: var(--accent);
+    opacity: 0;
+    animation: fly 1.25s var(--ease-out) var(--d, 0s) forwards;
+  }
+  .particles b:nth-child(4n+2) { background: var(--accent-2); }
+  .particles b:nth-child(4n+3) { background: var(--accent-3); }
+  .particles b:nth-child(4n)   { background: #ffffff; }
+
+  @keyframes fly {
+    0%   { transform: translate(0,0) scale(.4) rotate(0deg); opacity: 1; }
+    100% { transform: translate(var(--x), var(--y)) scale(.15) rotate(var(--r, 260deg)); opacity: 0; }
+  }
+
+  /* An empty stage element for skins that want something to fly in ahead of
+     the card — a shuriken, a rocket, a card flip. Hidden unless a skin asks
+     for it. */
+  .runner { position: absolute; display: none; pointer-events: none; }
+
+  /* --- per-type accents -------------------------------------------------- */
+  .t-follow  { --accent: #a855f7; --accent-2: #d8b4fe; --accent-soft: rgba(168,85,247,.30); --accent-glow: rgba(168,85,247,.42); }
+  .t-sub     { --accent: #22d3ee; --accent-2: #67e8f9; --accent-soft: rgba(34,211,238,.28);  --accent-glow: rgba(34,211,238,.40); }
+  .t-resub   { --accent: #fbbf24; --accent-2: #fde68a; --accent-soft: rgba(251,191,36,.28);  --accent-glow: rgba(251,191,36,.40); }
+  .t-subgift,
+  .t-subbomb { --accent: #34d399; --accent-2: #a7f3d0; --accent-soft: rgba(52,211,153,.28);  --accent-glow: rgba(52,211,153,.40); }
+  .t-cheer   { --accent: #f59e0b; --accent-2: #fcd34d; --accent-soft: rgba(245,158,11,.30);  --accent-glow: rgba(245,158,11,.42); }
+  .t-raid    { --accent: #fb7185; --accent-2: #fda4af; --accent-soft: rgba(251,113,133,.30); --accent-glow: rgba(251,113,133,.42); }
+  .t-tip     { --accent: #10b981; --accent-2: #6ee7b7; --accent-soft: rgba(16,185,129,.28);  --accent-glow: rgba(16,185,129,.40); }
+
+  @media (prefers-reduced-motion: reduce) {
+    body:not(.motion-full) .wrap.show .alert,
+    body:not(.motion-full) .wrap.show .icon,
+    body:not(.motion-full) .wrap.show .name span,
+    body:not(.motion-full) .wrap.show .eyebrow,
+    body:not(.motion-full) .wrap.show .sub,
+    body:not(.motion-full) .wrap.show .msg { animation-duration: .01s; }
+    body:not(.motion-full) .wrap.show .icon i { animation: none; }
+    /* particles rest at opacity 0, so switching the animation off would
+       erase them rather than calm them — show them in place instead */
+    body:not(.motion-full) .particles b { animation: none; opacity: .85;
+                   transform: translate(var(--x), var(--y)); }
+  }
+</style>
+<script>
+/* Skin loader — must stay last in <head>. Whatever the skin sets wins,
+   because its rules land after everything above. ?skin=anime overrides the
+   one make.js baked in for this folder. */
+(function () { var d = 'default'; var m = /[?&]skin=([\w-]+)/.exec(location.search);
+  document.write('<link rel="stylesheet" href="../skins/' + (m ? m[1] : d) + '/skin.css">'); })();
+</script>
+</head>
+<body class="page-alerts">
+
+<div class="anchor" id="stage">
+  <div class="wrap" id="wrap">
+    <div class="alert" id="card">
+      <div class="wash"></div>
+      <div class="icon" id="icon"><i></i></div>
+      <div class="text">
+        <div class="eyebrow" id="eyebrow"></div>
+        <div class="name"><span id="name"></span></div>
+        <div class="sub" id="sub"></div>
+        <div class="msg hidden" id="msg"></div>
+      </div>
+    </div>
+    <div class="runner"></div>
+    <div class="particles" id="particles"></div>
+  </div>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/core.js"></script>
+<script src="../js/connect.js"></script>
+<script>
+function startOverlay() {
+  'use strict';
+
+  var settings = Overlay.init({ pos: 'top-center' });
+  Overlay.place(document.getElementById('stage'), settings.pos);
+
+  var cfg = OverlayConfig.alerts;
+  var duration = Params.num('duration', cfg.duration);
+
+  var maxWidth = Params.num('width', cfg.maxWidth || 0);
+  if (maxWidth) document.documentElement.style.setProperty('--alert-max', maxWidth + 'px');
+
+  var wrap = document.getElementById('wrap');
+  var card = document.getElementById('card');
+  var iconBox = document.getElementById('icon');
+  var particles = document.getElementById('particles');
+  var el = {
+    eyebrow: document.getElementById('eyebrow'),
+    name: document.getElementById('name'),
+    sub: document.getElementById('sub'),
+    msg: document.getElementById('msg')
+  };
+
+  /* --- icons: one inline SVG per alert type --------------------------- */
+
+  var ICONS = {
+    follow:  '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>',
+    sub:     '<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>',
+    resub:   '<circle cx="12" cy="8" r="7"/><path d="M8.21 13.89L7 23l5-3 5 3-1.21-9.12"/>',
+    subgift: '<path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>',
+    cheer:   '<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>',
+    raid:    '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    tip:     '<circle cx="12" cy="12" r="9"/><path d="M15.5 8.7a4.5 4.5 0 1 0 0 6.6"/><path d="M7.6 11h6"/><path d="M7.6 13.4h6"/>'
+  };
+  ICONS.subbomb = ICONS.subgift;
+
+  function iconFor(type) {
+    return '<i></i><svg viewBox="0 0 24 24">' + (ICONS[type] || ICONS.follow) + '</svg>';
+  }
+
+  /* --- particle burst, sized to how big a deal the event is ----------- */
+
+  var RANK_NAMES = ['r1', 'r2', 'r3', 'r4', 'r5', 'legend'];
+
+  /* Every type has something that says how big it is. */
+  function magnitudeOf(ev) {
+    switch (ev.type) {
+      case 'sub':
+      case 'resub':   return ev.months || 0;
+      case 'cheer':
+      case 'tip':
+      case 'subgift':
+      case 'subbomb': return ev.amount || 0;
+      case 'raid':    return ev.viewers || 0;
+      default:        return 0;
+    }
+  }
+
+  /* Empty when there is nothing to measure, so a plain sub keeps the
+     colour of its Twitch tier instead of being demoted to the bottom. */
+  function rankFor(ev) {
+    var steps = (cfg.ranks || {})[ev.type];
+    var value = magnitudeOf(ev);
+    if (!steps || !steps.length || !value) return '';
+    var name = '';
+    for (var i = 0; i < steps.length; i++) {
+      if (value >= steps[i]) name = RANK_NAMES[Math.min(i, RANK_NAMES.length - 1)];
+    }
+    return name;
+  }
+
+  var BURST = cfg.burst ||
+    { follow: 16, sub: 14, resub: 14, subgift: 18, subbomb: 30, cheer: 22, raid: 34, tip: 22 };
+
+  function burst(count) {
+    particles.innerHTML = '';
+    if (!count) return;
+    for (var i = 0; i < count; i++) {
+      var dot = document.createElement('b');
+      var angle = Math.random() * Math.PI * 2;
+      var dist = 100 + Math.random() * 190;
+      dot.style.setProperty('--x', Math.cos(angle) * dist + 'px');
+      dot.style.setProperty('--y', Math.sin(angle) * dist * 0.72 + 'px');
+      dot.style.setProperty('--s', (5 + Math.random() * 7).toFixed(1) + 'px');
+      dot.style.setProperty('--d', (Math.random() * 0.18).toFixed(2) + 's');
+      dot.style.setProperty('--r', Math.round(180 + Math.random() * 320) + 'deg');
+      particles.appendChild(dot);
+    }
+  }
+
+  /* --- render one alert ------------------------------------------------ */
+
+  /* A name that does not fit is scaled down until it does. Cutting it to
+     "TheGreatestShino…" reads worse than slightly smaller letters, and the
+     person's whole name is the point of the alert. */
+  /* A name that does not fit is scaled down until it does. Cutting it to
+     "TheGreatestShino…" reads worse than slightly smaller letters, and the
+     person's whole name is the point of the alert.
+
+     Measured against an off-screen copy rather than by shrinking in a loop:
+     scrollWidth on an element that is already clipping is unreliable, and
+     one ratio gets it right in a single step. */
+  function fitName() {
+    var span = el.name;
+    span.style.fontSize = '';
+
+    var available = span.clientWidth;
+    var text = span.textContent;
+    if (!available || !text) return;
+
+    var style = window.getComputedStyle(span);
+    var size = parseFloat(style.fontSize) || 42;
+
+    var probe = document.createElement('span');
+    probe.textContent = text;
+    probe.style.position = 'absolute';
+    probe.style.left = '-9999px';
+    probe.style.top = '0';
+    probe.style.visibility = 'hidden';
+    probe.style.whiteSpace = 'nowrap';
+    probe.style.fontFamily = style.fontFamily;
+    probe.style.fontWeight = style.fontWeight;
+    probe.style.fontStyle = style.fontStyle;
+    probe.style.letterSpacing = style.letterSpacing;
+    probe.style.fontSize = size + 'px';
+    document.body.appendChild(probe);
+    var natural = probe.getBoundingClientRect().width;
+    probe.parentNode.removeChild(probe);
+
+    if (natural > available) {
+      /* a hair under the exact ratio, so rounding never shaves a letter */
+      span.style.fontSize = Math.max(14, Math.floor(size * (available / natural) - 0.5)) + 'px';
+    }
+  }
+
+  /* The display font arrives over the network. Measuring before it lands
+     sizes the name against the fallback face, which is a different width —
+     so measure again once the real font is in. */
+  /* Request the display font immediately. Left alone, the browser only
+     fetches it when the first alert paints text with it — so on a slow line
+     it arrives mid-animation, the name re-measures, and the whole thing
+     visibly jumps. */
+  function warmFont() {
+    if (!document.fonts || !document.fonts.load) return;
+    var style = window.getComputedStyle(el.name);
+    try {
+      document.fonts.load([style.fontStyle, style.fontWeight, style.fontSize + '/1',
+                           style.fontFamily].join(' '), 'Mg');
+    } catch (err) { /* older engines simply keep the old behaviour */ }
+  }
+
+  function fitNameWhenReady() {
+    fitName();
+    window.requestAnimationFrame(fitName);
+    if (document.fonts && document.fonts.ready && document.fonts.ready.then) {
+      document.fonts.ready.then(fitName).catch(function () {});
+    }
+  }
+
+  function render(ev, done) {
+    var tpl = cfg.templates[ev.type] || cfg.templates.follow;
+    var rank = rankFor(ev);
+
+    /* Money and bit counts read better formatted. */
+    var data = {};
+    for (var k in ev) if (Object.prototype.hasOwnProperty.call(ev, k)) data[k] = ev[k];
+    if (ev.type === 'tip') data.amount = Fmt.money(ev.amount, ev.currency);
+    else if (typeof ev.amount === 'number') data.amount = Fmt.number(ev.amount);
+    if (typeof ev.viewers === 'number') data.viewers = Fmt.number(ev.viewers);
+
+    /* Skins hang per-type and per-tier looks off the wrapper, which — unlike
+       the card — also covers the runner and the particles. */
+    wrap.setAttribute('data-type', ev.type);
+    wrap.setAttribute('data-tier', ev.tier || '');
+    wrap.setAttribute('data-rank', rank);
+
+    card.className = 'alert t-' + ev.type;
+    iconBox.className = 'icon';
+    iconBox.innerHTML = iconFor(ev.type);
+
+    el.eyebrow.textContent = Fmt.template(tpl.eyebrow, data);
+    el.name.textContent = data.user || 'someone';
+    fitNameWhenReady();
+    el.sub.textContent = Fmt.template(tpl.sub, data);
+
+    var message = String(ev.message || '').trim();
+    if (message) {
+      el.msg.textContent = message.length > 120 ? message.slice(0, 117) + '…' : message;
+      el.msg.classList.remove('hidden');
+    } else {
+      el.msg.classList.add('hidden');
+    }
+
+    /* Restart the animations: removing and re-adding the class is not
+       enough on its own, the browser needs a reflow in between. */
+    wrap.classList.remove('show', 'out');
+    void wrap.offsetWidth;
+    wrap.classList.add('show');
+
+    /* the bigger the event, the more it throws */
+    var weight = 1 + Math.max(0, RANK_NAMES.indexOf(rank)) * 0.35;
+    burst(Math.round((BURST[ev.type] || 0) * weight));
+    Sound.play(ev.type);
+
+    setTimeout(function () {
+      wrap.classList.add('out');
+      setTimeout(function () {
+        wrap.classList.remove('show', 'out');
+        particles.innerHTML = '';
+        done();
+      }, 420);
+    }, duration);
+  }
+
+  warmFont();
+
+  var queue = new Queue({ show: render, gap: Params.num('gap', cfg.gap) });
+
+  /* --- filters: don't interrupt the stream for tiny events ------------- */
+
+  Bus.on('alert', function (ev) {
+    if (ev.type === 'cheer' && (ev.amount || 0) < cfg.minCheer) return;
+    if (ev.type === 'tip' && (ev.amount || 0) < cfg.minTip) return;
+    queue.push(ev);
+  });
+
+  Connect.start({ demo: { chat: false, alertEvery: Params.num('every', 9000) } });
+}
+
+/* Runs straight away as a normal page. A StreamElements build sets SE_DEFER
+   and calls startOverlay() itself, once the widget's fields have arrived. */
+if (!window.SE_DEFER) startOverlay();
+</script>
+</body>
+</html>

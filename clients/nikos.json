@@ -1,0 +1,37 @@
+{
+  "displayName": "Nikos",
+  "channel": "nikosplays",
+  "skin": "anime",
+
+  "config": {
+    "sources": ["chat"],
+    "alerts": {
+      "duration": 7000,
+      "minCheer": 50,
+      "templates": {
+        "follow":  { "eyebrow": "ΝΕΟΣ ΣΥΝΤΡΟΦΟΣ", "line": "{user}", "sub": "μπήκε στην ομάδα!" },
+        "sub":     { "eyebrow": "ΝΕΟ SUB",         "line": "{user}", "sub": "Tier {tier} — ευχαριστώ!" },
+        "raid":    { "eyebrow": "RAID!!",          "line": "{user}", "sub": "έφερε {viewers} άτομα!" },
+        "cheer":   { "eyebrow": "{amount} BITS",   "line": "{user}", "sub": "τεράστιος" }
+      }
+    },
+    "goal": { "label": "Στόχος: 1000 followers", "current": 640, "target": 1000 },
+    "chat": { "fadeAfter": 60, "max": 10 },
+    "labels": { "rotateEvery": 7 },
+    "scene": {
+      "starting": { "title": "ΞΕΚΙΝΑΜΕ ΣΕ ΛΙΓΟ", "sub": "ετοιμάζω το setup", "seconds": 420 },
+      "ticker": [
+        "Follow για να μη χάσεις stream",
+        "Discord στο πάνελ κάτω",
+        "Κάθε Τρίτη & Πέμπτη στις 21:00"
+      ]
+    }
+  },
+
+  "overlays": [
+    { "id": "alerts", "params": "pos=top-center" },
+    { "id": "goal",   "params": "pos=bottom-left" },
+    { "id": "chat",   "params": "pos=bottom-left&max=10&fade=60" },
+    { "id": "scene",  "params": "mode=starting&t=420" }
+  ]
+}

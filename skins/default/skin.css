@@ -1,0 +1,22 @@
+/* ==========================================================================
+   skin: default
+   The look that ships in css/theme.css — this file adds nothing on purpose.
+
+   A skin is loaded LAST, after every other stylesheet, so anything you write
+   here beats the built-in rules without needing !important. Copy this folder
+   to skins/<name>/ and start overriding.
+
+   What a skin can reach:
+
+     alerts   .alert  .icon  .eyebrow  .name span  .sub  .msg  .wash
+              .particles b   .t-follow … .t-tip (per event type)
+     goal     .goal  .label  .count  .track  .fill  .pct  .head-glow  .float
+     chat     .line  .who  .body  .badge  .b-moderator …  .line.mention
+     labels   .pill  .dot  .title  .value  .value small
+     scene    .scene  .blob  .grain  .vignette  h1  .eyebrow  .sub
+              .digits  .progress  .ticker  .brand  .go
+
+   Animations are overridable too: redefine a @keyframes by the same name
+   (cardIn, cardOut, rise, riseIn, sweep, fly, pop, ring, stripes, marquee)
+   and your version wins.
+   ========================================================================== */
