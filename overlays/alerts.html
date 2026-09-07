@@ -507,7 +507,13 @@ function startOverlay() {
     requestAnimationFrame(frame);
 
     setInterval(function () {
-      if (!deltas.length) { box.textContent = 'no frames — this page is not being drawn'; return; }
+      if (!deltas.length) {
+        /* the version matters most in exactly this case: a page that is not
+           drawing may simply be a stale copy held by the browser's cache */
+        box.textContent = 'δεν ζωγραφίζεται καθόλου' + String.fromCharCode(10) +
+                          'έκδοση ' + document.lastModified;
+        return;
+      }
       var sum = 0;
       for (var i = 0; i < deltas.length; i++) sum += deltas[i];
       var avg = sum / deltas.length;
@@ -518,12 +524,44 @@ function startOverlay() {
         'fps τώρα       ' + (1000 / avg).toFixed(0),
         'χειρότερο καρέ ' + worst.toFixed(0) + ' ms',
         'καρέ πάνω 33ms ' + dropped + ' από ' + total,
-        verdict
+        verdict,
+        'έκδοση ' + document.lastModified
       ].join(String.fromCharCode(10));
       worst = 0; dropped = 0; total = 0;
     }, 2000);
   }
 
+
+  /* --- ?showcase=1 -------------------------------------------------------
+     Fires one alert for every rank of every type that has one, so the whole
+     ladder — bronze through rainbow — can be watched end to end instead of
+     waiting for the events that would earn it. */
+  function startShowcase() {
+    var ranks = cfg.ranks || {};
+    var sample = {
+      resub:   function (n) { return { type: 'resub',   user: 'Δοκιμή', months: n, tier: '1' }; },
+      cheer:   function (n) { return { type: 'cheer',   user: 'Δοκιμή', amount: n }; },
+      tip:     function (n) { return { type: 'tip',     user: 'Δοκιμή', amount: n, currency: 'EUR' }; },
+      subgift: function (n) { return { type: 'subgift', user: 'Δοκιμή', amount: n, target: 'κάποιον' }; },
+      subbomb: function (n) { return { type: 'subbomb', user: 'Δοκιμή', amount: n }; },
+      raid:    function (n) { return { type: 'raid',    user: 'Δοκιμή', viewers: n }; }
+    };
+
+    var list = [];
+    Object.keys(sample).forEach(function (type) {
+      (ranks[type] || []).forEach(function (threshold) {
+        list.push(sample[type](threshold));
+      });
+    });
+
+    var i = 0;
+    (function next() {
+      if (!list.length) return;
+      Bus.emit('alert', list[i % list.length]);
+      i++;
+      setTimeout(next, duration + 600);
+    })();
+  }
   if (Params.bool('fps', false)) startFpsMeter();
 
   warmFont();
@@ -538,7 +576,8 @@ function startOverlay() {
     queue.push(ev);
   });
 
-  Connect.start({ demo: { chat: false, alertEvery: Params.num('every', 9000) } });
+  if (Params.bool('showcase', false)) startShowcase();
+  else Connect.start({ demo: { chat: false, alertEvery: Params.num('every', 9000) } });
 }
 
 /* Runs straight away as a normal page. A StreamElements build sets SE_DEFER
