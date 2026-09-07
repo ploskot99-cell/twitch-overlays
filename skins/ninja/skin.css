@@ -932,23 +932,23 @@ body.page-scene { background: #14100c; }
 .page-alerts .runner::before {
   animation: shurikenSpin 1.05s cubic-bezier(.1, .85, .18, 1) both;
 }
-/* Four turns by default, and no animated filter.
+/* Three turns by default, and no animated filter.
 
    The blade has four identical arms, so it repeats every 90°. Past about
    45° between frames the eye latches onto the next arm and reads the spin
    backwards — it looks stuck. Fourteen turns was 80° a frame, which is why
-   it juddered; six was 34°, right at the edge of readable. Four is 23°,
-   which reads as a clean throw. ?spin= changes it without touching any
-   timing, so the landing still happens where everything else expects it.
+   it juddered; six was 34°, right at the edge of readable. Three is 17°,
+   which reads cleanly at any frame rate. ?spin= changes it without touching
+   any timing, so the landing still happens where everything else expects it.
 
    The blur is fixed rather than animated. Animating a filter re-rasterises
    the layer on every single frame, which is the expensive part; a constant
    one is rasterised once and costs nothing to spin. */
 @keyframes shurikenSpin {
   0%   { transform: rotate(0deg) scale(1, 1); }
-  88%  { transform: rotate(calc(var(--spin, 4) * 360deg - 52deg)) scale(1, 1); }
-  94%  { transform: rotate(calc(var(--spin, 4) * 360deg - 6deg)) scale(1.07, .93); }  /* the bite */
-  100% { transform: rotate(calc(var(--spin, 4) * 360deg + 12deg)) scale(1, 1); }      /* lands 12° off square */
+  88%  { transform: rotate(calc(var(--spin, 3) * 360deg - 52deg)) scale(1, 1); }
+  94%  { transform: rotate(calc(var(--spin, 3) * 360deg - 6deg)) scale(1.07, .93); }  /* the bite */
+  100% { transform: rotate(calc(var(--spin, 3) * 360deg + 12deg)) scale(1, 1); }      /* lands 12° off square */
 }
 
 /* The hub used to animate its box-shadow as the blade went in. A shadow is
