@@ -212,6 +212,12 @@
         document.documentElement.style.fontSize = (16 * scale) + 'px';
       }
 
+      /* How many turns a thrown blade makes on the way in. Rotation only —
+         the flight time is untouched, so the impact still lands where every
+         other animation expects it. */
+      var spin = Params.num('spin', 0);
+      if (spin > 0) root.style.setProperty('--spin', String(spin));
+
       var accent = Params.get('accent', null);
       if (accent) document.documentElement.style.setProperty('--accent', '#' + accent.replace('#', ''));
 
