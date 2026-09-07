@@ -65,6 +65,8 @@ const FIELDS = {
     duration: { type: 'number', label: 'Πόσο μένει στην οθόνη (ms)', value: 6500, step: 250, min: 2000, max: 20000, group: 'Alert' },
     gap: { type: 'number', label: 'Κενό ανάμεσα σε alerts (ms)', value: 600, step: 100, min: 0, max: 5000, group: 'Alert' },
     panel: { type: 'checkbox', label: 'Πλαίσιο πίσω από το κείμενο', value: false, group: 'Εμφάνιση' },
+    /* the only machine whose frame timings matter is the one with the problem */
+    fps: { type: 'checkbox', label: 'Μετρητής καρέ (για δοκιμή — σβήσ’ τον μετά)', value: false, group: 'Εμφάνιση' },
     width: { type: 'number', label: 'Μέγιστο πλάτος κάρτας (px)', value: 640, step: 20, min: 320, max: 1400, group: 'Διάταξη' },
     'cfg__alerts__minCheer': { type: 'number', label: 'Ελάχιστα bits για alert', value: 100, step: 10, min: 0, group: 'Φίλτρα' },
     'cfg__alerts__minTip': { type: 'number', label: 'Ελάχιστη δωρεά για alert', value: 1, step: 1, min: 0, group: 'Φίλτρα' },
