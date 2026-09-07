@@ -93,6 +93,11 @@
     vertical-align: 2px;
   }
 
+  .copy-for { font-size: 13.5px; color: var(--muted); margin-bottom: 10px; }
+  .copy-for b { color: var(--ink); }
+  .copy-for.stale { color: #fb7185; }
+  .copy-row.stale { opacity: .4; pointer-events: none; }
+
   .copy-row .btn { min-width: 168px; justify-content: center; font-weight: 700; }
   .copy-row .btn.done {
     background: linear-gradient(140deg, var(--accent), var(--accent-2));
@@ -185,6 +190,7 @@
       <span>Πάτα ένα κουμπί, πήγαινε στην ομώνυμη καρτέλα του SE, <b>Ctrl+V</b>. Και τα τέσσερα.</span>
       <span><b>Done</b> → μεγάλωσε το widget στον καμβά</span>
     </div>
+    <div class="copy-for" id="copyFor"></div>
     <div class="btns copy-row" id="copyRow"></div>
   </div>
 
@@ -287,6 +293,10 @@
       if (skinSel.value) fieldData.skin = skinSel.value;
       if (variantSel.value) fieldData.variant = variantSel.value;
 
+      /* now that the real values are settled, say what the buttons hold */
+      loadedFor = { name: name, widget: overlay, skin: fieldData.skin || 'default' };
+      markFresh();
+
       frame.onload = function () {
         frame.contentWindow.dispatchEvent(new CustomEvent('onWidgetLoad', {
           detail: { fieldData: fieldData, session: { data: {} }, channel: { username: name } }
@@ -314,7 +324,27 @@
   /* --- copy straight into the four StreamElements tabs ------------------- */
 
   var loaded = null;
+  var loadedFor = null;
   var copyRow = document.getElementById('copyRow');
+  var copyFor = document.getElementById('copyFor');
+
+  /* Typing a client name used to change nothing until Φόρτωσε was pressed,
+     so the copy buttons kept handing over whatever had been loaded before —
+     usually base, whose skin is the plain one. That is indistinguishable
+     from a broken skin once it is pasted into StreamElements. */
+  function markStale() {
+    copyRow.classList.add('stale');
+    copyFor.classList.add('stale');
+    copyFor.innerHTML = 'Άλλαξες επιλογή — πάτα <b>Φόρτωσε</b> πριν αντιγράψεις';
+  }
+
+  function markFresh() {
+    if (!loadedFor) return;
+    copyRow.classList.remove('stale');
+    copyFor.classList.remove('stale');
+    copyFor.innerHTML = 'Αντιγράφεις: <b>' + loadedFor.name + '</b> · <b>' +
+      loadedFor.widget + '</b> · στυλ <b>' + loadedFor.skin + '</b>';
+  }
 
   function copyViaTextarea(text) {
     return new Promise(function (resolve, reject) {
@@ -414,6 +444,13 @@
   });
 
   function reload() { loadManifest().then(load); }
+
+  nameInput.oninput = function () {
+    if (!loadedFor || nameInput.value.trim() !== loadedFor.name) markStale();
+    else markFresh();
+  };
+  nameInput.onchange = reload;
+  nameInput.onkeydown = function (e) { if (e.key === 'Enter') reload(); };
 
   document.getElementById('load').onclick = reload;
   overlaySel.onchange = load;
