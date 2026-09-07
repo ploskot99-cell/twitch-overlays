@@ -181,21 +181,27 @@
   /* --- setup applied by every overlay ------------------------------------ */
 
   var Overlay = {
-    /* Apply ?theme= and ?pos= and return the resolved settings. */
+    /* Apply ?theme= and ?pos= and return the resolved settings.
+
+       Classes go on OverlayRoot, which is the page body everywhere except
+       inside a StreamElements widget — there the widget owns a div on a page
+       it shares, and writing to that page's body would reach past it. */
     init: function (defaults) {
+      var root = window.OverlayRoot || document.body;
+
       var theme = Params.get('theme', null);
-      if (theme) document.body.classList.add('theme-' + theme);
+      if (theme) root.classList.add('theme-' + theme);
 
       /* The overlay is rendered on the streamer's machine but watched by
          other people, so Windows' "reduce motion" would otherwise flatten
          the animation for an audience that never asked for it. Full motion
          wins unless ?motion=system says otherwise. */
       if (Params.get('motion', 'full') !== 'system') {
-        document.body.classList.add('motion-full');
+        root.classList.add('motion-full');
       }
 
       /* No card behind the text unless it is asked for: ?panel=1 */
-      document.body.classList.add(Params.bool('panel', false) ? 'panel-on' : 'no-panel');
+      root.classList.add(Params.bool('panel', false) ? 'panel-on' : 'no-panel');
 
       /* A skin can offer colourways of itself — ?variant=mono and so on. */
       var variant = Params.get('variant', null);

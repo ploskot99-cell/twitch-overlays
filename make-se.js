@@ -18,6 +18,7 @@ const fs = require('fs');
 const path = require('path');
 
 const root = __dirname;
+const NL = String.fromCharCode(10);
 const OVERLAYS = ['alerts', 'goal', 'chat', 'labels', 'scene'];
 
 /* --------------------------------------------------------------------------
@@ -121,6 +122,17 @@ const FIELDS = {
 /* the scene fills the whole canvas, so a position dropdown is noise */
 delete FIELDS.scene.pos;
 
+/* StreamElements drops a widget into a box on its own canvas. The overlays
+   position themselves against the viewport, which is right in OBS — the page
+   is the whole screen — and wrong here: fixed positioning would pin an alert
+   to the corner of the entire overlay instead of the box the streamer sized
+   and placed. Inside the widget everything lays out against .se-root. */
+const SE_LAYOUT = [
+  '/* ===== streamelements layout ===== */',
+  '.se-root { position: relative; width: 100%; height: 100%; }',
+  '.se-root .anchor { position: absolute; }'
+].join('\n');
+
 /* --- pulling a page apart -------------------------------------------------- */
 
 function read(file) {
@@ -182,11 +194,30 @@ function bootstrap(overlay, bodyClass, defaultSkin) {
     '  var table = window.OverlaySkins || {};',
     '  var chosen = fields.skin && table[fields.skin] !== undefined',
     '    ? fields.skin : ' + JSON.stringify(defaultSkin) + ';',
+    '  /* Which skin was asked for, which one actually went on, and what was',
+    '     available to choose from. Read it in the console with',
+    '     window.__overlaySkin if a widget ever comes out looking plain. */',
+    '  window.__overlaySkin = { asked: fields.skin || null, resolved: chosen,',
+    '                           available: Object.keys(table), applied: false };',
+    '',
     '  if (table[chosen]) {',
-    '    var style = document.createElement("style");',
-    '    style.setAttribute("data-skin", chosen);',
-    '    style.textContent = table[chosen];',
-    '    document.head.appendChild(style);',
+    '    var skinStyle = document.createElement("style");',
+    '    skinStyle.setAttribute("data-skin", chosen);',
+    '    skinStyle.textContent = table[chosen];',
+    '    document.head.appendChild(skinStyle);',
+    '    window.__overlaySkin.applied = true;',
+    '',
+    '    /* and keep it last, in case the widget stylesheet lands later */',
+    '    var keepLast = function () {',
+    '      if (skinStyle.parentNode === document.head) document.head.appendChild(skinStyle);',
+    '    };',
+    '    setTimeout(keepLast, 0);',
+    '    setTimeout(keepLast, 500);',
+    '    setTimeout(keepLast, 2000);',
+    '    window.addEventListener("load", keepLast);',
+    '  } else {',
+    '    console.error("[overlay] skin \\"" + chosen + "\\" is not in this build. Available: " +',
+    '      Object.keys(table).join(", ") + ". Re-paste the JS tab.");',
     '  }',
     '',
     '  /* "cfg__a__b__c" fields are written straight into OverlayConfig.',
@@ -207,7 +238,9 @@ function bootstrap(overlay, bodyClass, defaultSkin) {
     '  /* events come from the widget itself, not from a socket we open */',
     '  window.OverlayConfig.sources = [\'se\'];',
     '',
-    '  document.body.className = ' + JSON.stringify(bodyClass) + ';',
+    '  /* the widget owns this div, not the page it is dropped into */',
+    '  window.OverlayRoot = document.querySelector(".se-root") || document.body;',
+    '  window.OverlayRoot.className = "se-root " + ' + JSON.stringify(bodyClass) + ';',
     '  startOverlay();',
     '});'
   ].join('\n');
@@ -257,7 +290,8 @@ function buildOverlay(spec, options) {
   const css = mergeCss([
     '/* ===== theme ===== */\n' + read(path.join('css', 'theme.css')),
     '/* ===== ' + overlay + ' ===== */\n' + part.style,
-    '/* ===== skin fonts ===== */\n' + skinImports.join(String.fromCharCode(92) + 'n')
+    '/* ===== skin fonts ===== */\n' + skinImports.join(String.fromCharCode(10)),
+    SE_LAYOUT
   ]);
 
   /* JS: settings, engine, then the overlay, then the bridge */
@@ -273,7 +307,10 @@ function buildOverlay(spec, options) {
     part.code
   ].filter(Boolean).join('\n\n');
 
-  fs.writeFileSync(path.join(out, 'widget.html'), part.markup + '\n', 'utf8');
+  /* Wrapped: StreamElements gives a widget a box on a canvas it shares,
+     and everything inside lays out against this element, not the page. */
+  fs.writeFileSync(path.join(out, 'widget.html'),
+    '<div class="se-root">' + NL + part.markup + NL + '</div>' + NL, 'utf8');
   fs.writeFileSync(path.join(out, 'widget.css'), css.trim() + '\n', 'utf8');
   fs.writeFileSync(path.join(out, 'widget.js'), js + '\n', 'utf8');
   fs.writeFileSync(path.join(out, 'fields.json'),
