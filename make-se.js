@@ -19,6 +19,11 @@ const path = require('path');
 
 const root = __dirname;
 const NL = String.fromCharCode(10);
+
+/* Once the four boxes are pasted into StreamElements they are just text in
+   an editor, with nothing on screen saying where they came from. A line at
+   the top of each says it, and survives the trip. */
+const BUILT = new Date().toISOString().slice(0, 16).replace('T', ' ');
 const OVERLAYS = ['alerts', 'goal', 'chat', 'labels', 'scene'];
 
 /* --------------------------------------------------------------------------
@@ -314,12 +319,21 @@ function buildOverlay(spec, options) {
 
   /* Wrapped: StreamElements gives a widget a box on a canvas it shares,
      and everything inside lays out against this element, not the page. */
+  const stamp = options.name + ' · ' + key + ' · skin: ' + skin + ' · ' + BUILT;
+
   fs.writeFileSync(path.join(out, 'widget.html'),
+    '<!-- ' + stamp + ' -->' + NL +
     '<div class="se-root">' + NL + part.markup + NL + '</div>' + NL, 'utf8');
-  fs.writeFileSync(path.join(out, 'widget.css'), css.trim() + '\n', 'utf8');
+
+  /* The banner goes above the @import lines on purpose: a comment is not a
+     rule, so it does not cost the imports their place at the top. */
+  fs.writeFileSync(path.join(out, 'widget.css'),
+    '/* ' + stamp + ' */' + NL + css.trim() + '\n', 'utf8');
+
+  const stampedJs = '/* ' + stamp + ' */' + NL + js;
   /* refuse to hand over a bundle that will not run */
-  assertParses(key + '/widget.js', js);
-  fs.writeFileSync(path.join(out, 'widget.js'), js + '\n', 'utf8');
+  assertParses(key + '/widget.js', stampedJs);
+  fs.writeFileSync(path.join(out, 'widget.js'), stampedJs + '\n', 'utf8');
   fs.writeFileSync(path.join(out, 'fields.json'),
     JSON.stringify(fieldsFor(overlay, options, spec.params), null, 2) + '\n', 'utf8');
 
@@ -472,6 +486,25 @@ function instructions(name, client, skin, specs) {
     '- Το widget είναι διάφανο· ό,τι φαίνεται γύρω του είναι το stream σου.\n';
 }
 
+/* A browser cannot list a directory, so the preview page would have to be
+   told the client name by hand — and a name typed by hand is a name that can
+   be typed wrong, silently, while the copy buttons still hold someone else's
+   widget. This index turns that field into a list of what exists. */
+function writeClientIndex() {
+  const dist = path.join(root, 'dist');
+  const names = fs.readdirSync(dist)
+    .filter(function (entry) {
+      return entry.slice(-3) === '-se' &&
+             fs.statSync(path.join(dist, entry)).isDirectory();
+    })
+    .map(function (entry) { return entry.slice(0, -3); })
+    .sort();
+
+  fs.writeFileSync(path.join(dist, 'clients.json'),
+    JSON.stringify(names, null, 2) + '\n', 'utf8');
+  return names;
+}
+
 /* --- entry point ----------------------------------------------------------- */
 
 const args = process.argv.slice(2);
@@ -490,10 +523,12 @@ if (args.includes('--clients')) {
     .filter(function (f) { return f.endsWith('.json') && f.charAt(0) !== '_'; });
   console.log('');
   all.forEach(function (f) { buildClient(path.basename(f, '.json')); });
+  console.log('  ✓ λίστα: ' + writeClientIndex().join(', '));
   console.log('');
 } else if (names.length) {
   console.log('');
   names.forEach(function (n) { buildClient(n); });
+  console.log('  ✓ λίστα: ' + writeClientIndex().join(', '));
   console.log('');
 } else {
   console.log('\n  node make-se.js <όνομα-client>   |   node make-se.js --clients');

@@ -93,10 +93,15 @@
     vertical-align: 2px;
   }
 
-  .copy-for { font-size: 13.5px; color: var(--muted); margin-bottom: 10px; }
+  .copy-for {
+    font-size: 14px; color: var(--muted); margin-bottom: 12px;
+    padding: 10px 14px; border-radius: 12px;
+    border: 1px solid var(--stroke);
+    background: rgba(255,255,255,.04);
+  }
   .copy-for b { color: var(--ink); }
-  .copy-for.stale { color: #fb7185; }
-  .copy-row.stale { opacity: .4; pointer-events: none; }
+  .copy-for.stale { color: #ffd7dc; border-color: #fb7185; background: rgba(251,113,133,.10); }
+  .copy-row.stale { opacity: .35; pointer-events: none; }
 
   .copy-row .btn { min-width: 168px; justify-content: center; font-weight: 700; }
   .copy-row .btn.done {
@@ -140,7 +145,9 @@
     </div>
     <div class="spacer"></div>
     <label class="field">Client
-      <input type="text" id="name" value="base" style="width:140px">
+      <select id="name" style="min-width:150px">
+        <option value="base">base</option>
+      </select>
     </label>
     <label class="field">Widget
       <select id="overlay">
@@ -223,6 +230,29 @@
     logBox.scrollTop = logBox.scrollHeight;
   }
 
+  /* --- which clients have actually been built ---------------------------- */
+
+  /* Written by make-se.js from the folders on disk. A list you pick from
+     cannot be misspelt, and cannot quietly stay on the previous client. */
+  function loadClients() {
+    var wanted = new URLSearchParams(window.location.search).get('client');
+    return fetch('dist/clients.json')
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .catch(function () { return null; })
+      .then(function (list) {
+        if (!list || !list.length) return;
+        nameInput.innerHTML = '';
+        list.forEach(function (client) {
+          var opt = document.createElement('option');
+          opt.value = client;
+          opt.textContent = client;
+          nameInput.appendChild(opt);
+        });
+        if (wanted && list.indexOf(wanted) !== -1) nameInput.value = wanted;
+        else if (list.indexOf('base') !== -1) nameInput.value = 'base';
+      });
+  }
+
   /* --- which widgets this client actually has ---------------------------- */
 
   function loadManifest() {
@@ -275,7 +305,6 @@
 
       /* keep the raw text around for the copy buttons */
       loaded = { HTML: html, CSS: css, JS: js, FIELDS: parts[3] };
-      renderCopyButtons();
 
       /* SE hands the widget the *values* of the fields, not the definitions */
       var fieldData = {};
@@ -293,8 +322,10 @@
       if (skinSel.value) fieldData.skin = skinSel.value;
       if (variantSel.value) fieldData.variant = variantSel.value;
 
-      /* now that the real values are settled, say what the buttons hold */
+      /* Now that the real values are settled: name what the buttons hold,
+         then build them. In that order — the buttons print the name. */
       loadedFor = { name: name, widget: overlay, skin: fieldData.skin || 'default' };
+      renderCopyButtons();
       markFresh();
 
       frame.onload = function () {
@@ -318,6 +349,12 @@
       } else {
         log('σφάλμα: ' + message, 'err');
       }
+      /* Whatever the buttons are still holding is the previous client, and
+         handing that over on a failed load is exactly the trap. */
+      loaded = null;
+      loadedFor = null;
+      copyRow.innerHTML = '';
+      markStale('Δεν φόρτωσε το <b>' + name + '</b> — δεν υπάρχει τίποτα να αντιγράψεις');
     });
   }
 
@@ -332,10 +369,11 @@
      so the copy buttons kept handing over whatever had been loaded before —
      usually base, whose skin is the plain one. That is indistinguishable
      from a broken skin once it is pasted into StreamElements. */
-  function markStale() {
+  function markStale(why) {
     copyRow.classList.add('stale');
     copyFor.classList.add('stale');
-    copyFor.innerHTML = 'Άλλαξες επιλογή — πάτα <b>Φόρτωσε</b> πριν αντιγράψεις';
+    copyFor.innerHTML = why ||
+      'Άλλαξες επιλογή — πάτα <b>Φόρτωσε</b> πριν αντιγράψεις';
   }
 
   function markFresh() {
@@ -383,11 +421,13 @@
       button.className = 'btn';
       button.innerHTML = 'Αντιγραφή ' + box +
         ' <small>' + Math.round(text.length / 1024) + 'KB</small>';
+      var from = loadedFor ? loadedFor.name : '?';
       button.onclick = function () {
         copy(text).then(function () {
           button.classList.add('done');
-          button.innerHTML = '✓ ' + box + ' αντιγράφηκε';
-          log('αντιγράφηκε το ' + box + ' — επικόλλησέ το στην καρτέλα ' + box, 'ok');
+          button.innerHTML = '✓ ' + box + ' · ' + from;
+          log('αντιγράφηκε το ' + box + ' του «' + from +
+              '» — επικόλλησέ το στην καρτέλα ' + box, 'ok');
         }).catch(function (err) {
           log('δεν έγινε αντιγραφή: ' + err.message, 'err');
         });
@@ -443,20 +483,32 @@
     tests.appendChild(b);
   });
 
-  function reload() { loadManifest().then(load); }
+  /* Every picker blanks the buttons first and only fills them again when the
+     new files are in — so there is no moment where they hold one client
+     while the page shows another. */
+  function reload() {
+    markStale('Φορτώνει…');
+    copyRow.innerHTML = '';
+    /* so the address bar is a link to exactly this client */
+    var url = new URL(window.location.href);
+    url.searchParams.set('client', nameInput.value);
+    window.history.replaceState(null, '', url);
+    return loadManifest().then(load);
+  }
 
-  nameInput.oninput = function () {
-    if (!loadedFor || nameInput.value.trim() !== loadedFor.name) markStale();
-    else markFresh();
-  };
+  function reloadWidget() {
+    markStale('Φορτώνει…');
+    copyRow.innerHTML = '';
+    load();
+  }
+
   nameInput.onchange = reload;
-  nameInput.onkeydown = function (e) { if (e.key === 'Enter') reload(); };
-
   document.getElementById('load').onclick = reload;
-  overlaySel.onchange = load;
-  variantSel.onchange = load;
-  skinSel.onchange = load;
-  reload();
+  overlaySel.onchange = reloadWidget;
+  variantSel.onchange = reloadWidget;
+  skinSel.onchange = reloadWidget;
+
+  loadClients().then(reload);
 })();
 </script>
 </body>
