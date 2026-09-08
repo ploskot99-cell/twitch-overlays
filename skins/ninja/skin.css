@@ -142,20 +142,14 @@
   /* No blur: at six turns the arms no longer strobe, so it bought nothing
      and every filter is another pass over the layer. */
   filter: drop-shadow(2px 3px 5px rgba(0, 0, 0, .9));
-  /* Four fast turns on the way in, then it never stops — the hand-off is
-     invisible because 1440deg is a whole number of rotations. */
-  animation: shurikenSpin 1.05s cubic-bezier(.15, .7, .4, 1) both,
-             shurikenIdle 2.4s linear 1.05s infinite;
+  /* The spin is deliberately not started here — see "the spin has to be
+     restartable" further down. Anything attached to the resting blade runs
+     once, at page load, and never again. */
 }
 @keyframes shurikenSpin {
   from { transform: rotate(0deg); }
   to   { transform: rotate(1440deg); }
 }
-@keyframes shurikenIdle {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-
 /* the hub — ringed in the tier's metal */
 .page-alerts .runner::after {
   content: '';
@@ -939,10 +933,22 @@ body.page-scene { background: #14100c; }
   100% { transform: translate(0, 0) rotate(0deg); }
 }
 
-/* spins on the way in, then stops — and stops crooked, the way a thrown
-   blade never lands square */
+/* --- the spin has to be restartable --------------------------------------
+
+   The alert is one element that lives for the whole session: render() only
+   takes ".show" off and puts it back. An animation named on the *resting*
+   blade therefore starts once, when the page loads, and finishes 1.05s
+   later — and because toggling ".show" does not change the animation-name
+   list, the browser has no reason to start it again. It keeps the last
+   keyframe forever, which is the landed angle. The blade flew in already
+   pointing where it was supposed to end up: no spin, on every alert after
+   the first second of the stream.
+
+   So nothing spins the resting blade. "none" is spelled out rather than
+   left off, because removing ".show" is what has to cancel the running
+   animation so that adding it back can start a fresh one.               */
 .page-alerts .runner::before {
-  animation: shurikenSpin 1.05s cubic-bezier(.1, .85, .18, 1) both;
+  animation: none;
 }
 /* Three turns by default, and no animated filter.
 
